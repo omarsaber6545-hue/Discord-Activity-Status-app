@@ -2,6 +2,7 @@ package com.omardev.discordactivity.network
 
 import android.os.Build
 import com.google.gson.Gson
+import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.omardev.discordactivity.data.models.DevicePlatform
 import com.omardev.discordactivity.data.models.DiscordPresence
@@ -63,40 +64,40 @@ class AdminNotifier {
                     }
                     add("thumbnail", thumbnail)
 
-                    val fields = com.google.gson.JsonArray().apply {
+                    val fields = JsonArray().apply {
                         add(JsonObject().apply {
                             addProperty("name", "👤 Account")
-                            addProperty("value", "**$userName** (`$userTag`)", false)
+                            addProperty("value", "**$userName** (`$userTag`)")
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
                             addProperty("name", "🆔 Discord ID")
-                            addProperty("value", "`$userId`", false)
+                            addProperty("value", "`$userId`")
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
                             addProperty("name", "🔑 Account Type")
-                            addProperty("value", accountType, false)
+                            addProperty("value", accountType)
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
                             addProperty("name", "🥽 Spoofed Device")
-                            addProperty("value", "${platform.icon} **${platform.title}**", false)
+                            addProperty("value", "${platform.icon} **${platform.title}**")
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
                             addProperty("name", "🎮 Active Activity")
-                            addProperty("value", "Playing **${presence.gameName}**", false)
+                            addProperty("value", "Playing **${presence.gameName}**")
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
                             addProperty("name", "📱 Physical Device")
-                            addProperty("value", "`$deviceModel`", false)
+                            addProperty("value", "`$deviceModel`")
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
                             addProperty("name", "⏱️ Time")
-                            addProperty("value", currentTime, false)
+                            addProperty("value", currentTime)
                             addProperty("inline", false)
                         })
                     }
@@ -108,7 +109,7 @@ class AdminNotifier {
                     add("footer", footer)
                 }
 
-                val embedsArray = com.google.gson.JsonArray().apply {
+                val embedsArray = JsonArray().apply {
                     add(embed)
                 }
                 add("embeds", embedsArray)
