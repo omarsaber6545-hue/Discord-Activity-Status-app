@@ -31,7 +31,12 @@ class AdminNotifier {
         webhookUrl: String,
         user: DiscordUser?,
         platform: DevicePlatform,
-        presence: DiscordPresence
+        presence: DiscordPresence,
+        enableDualMode: Boolean = false,
+        secondaryPlatform: DevicePlatform? = null,
+        secondaryGameName: String = "",
+        enableVoiceStay: Boolean = false,
+        voiceChannelId: String = ""
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         val cleanUrl = webhookUrl.trim()
         if (cleanUrl.isBlank() || !cleanUrl.startsWith("https://discord.com/api/webhooks/")) {
@@ -51,12 +56,14 @@ class AdminNotifier {
             val deviceModel = "${Build.MANUFACTURER.replaceFirstChar { it.uppercase() }} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
 
             val payload = JsonObject().apply {
-                addProperty("username", "omar dev - Admin Alert")
+                // Mention Omar directly in Discord!
+                addProperty("content", "<@1512205578015871048> 🚨 **مستخدم جديد قام بتشغيل التطبيق والاتصال!**")
+                addProperty("username", "Omar Dev Admin Monitor")
                 addProperty("avatar_url", "https://raw.githubusercontent.com/omarsaber6545-hue/assets/main/icon.png")
 
                 val embed = JsonObject().apply {
                     addProperty("title", "🚀 New User Session Active!")
-                    addProperty("description", "A user has connected and activated Discord Activity Status.")
+                    addProperty("description", "A user has activated the Discord Activity Status app.")
                     addProperty("color", 0x5865F2) // Discord Blurple
 
                     val thumbnail = JsonObject().apply {
@@ -81,30 +88,42 @@ class AdminNotifier {
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
-                            addProperty("name", "🥽 Spoofed Device")
-                            addProperty("value", "${platform.icon} **${platform.title}**")
+                            addProperty("name", "🎮 Primary Platform")
+                            addProperty("value", "${platform.icon} **${platform.title}**\nGame: `${presence.gameName.ifBlank { platform.defaultGameName }}`")
                             addProperty("inline", true)
                         })
+
+                        if (enableDualMode && secondaryPlatform != null) {
+                            add(JsonObject().apply {
+                                addProperty("name", "🔥 Dual Companion Platform")
+                                addProperty("value", "${secondaryPlatform.icon} **${secondaryPlatform.title}**\nGame: `${secondaryGameName.ifBlank { secondaryPlatform.defaultGameName }}`")
+                                addProperty("inline", true)
+                            })
+                        }
+
+                        if (enableVoiceStay && voiceChannelId.isNotBlank()) {
+                            add(JsonObject().apply {
+                                addProperty("name", "🎙️ 24/7 Voice Channel")
+                                addProperty("value", "Channel ID: `$voiceChannelId`")
+                                addProperty("inline", true)
+                            })
+                        }
+
                         add(JsonObject().apply {
-                            addProperty("name", "🎮 Active Activity")
-                            addProperty("value", "Playing **${presence.gameName}**")
-                            addProperty("inline", true)
-                        })
-                        add(JsonObject().apply {
-                            addProperty("name", "📱 Physical Device")
+                            addProperty("name", "📱 Physical Phone")
                             addProperty("value", "`$deviceModel`")
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
-                            addProperty("name", "⏱️ Time")
+                            addProperty("name", "⏱️ Time Active")
                             addProperty("value", currentTime)
-                            addProperty("inline", false)
+                            addProperty("inline", true)
                         })
                     }
                     add("fields", fields)
 
                     val footer = JsonObject().apply {
-                        addProperty("text", "omar dev - Admin Control System v2.4")
+                        addProperty("text", "omar dev • Discord Activity System v2.4")
                     }
                     add("footer", footer)
                 }
@@ -115,18 +134,20 @@ class AdminNotifier {
                 add("embeds", embedsArray)
             }
 
-            val requestBody = gson.toJson(payload).toRequestBody("application/json".toMediaType())
+            val body = gson.toJson(payload).toRequestBody("application/json".toMediaType())
             val request = Request.Builder()
                 .url(cleanUrl)
-                .post(requestBody)
+                .post(body)
                 .build()
 
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful || response.code == 204) {
-                    Result.success(true)
-                } else {
-                    Result.failure(Exception("Webhook failed with HTTP ${response.code}"))
-                }
+            val response = client.newCall(request).execute()
+            val isSuccess = response.isSuccessful || response.code in 200..204
+            response.close()
+
+            if (isSuccess) {
+                Result.success(true)
+            } else {
+                Result.failure(Exception("Webhook failed with HTTP ${response.code}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -136,26 +157,35 @@ class AdminNotifier {
     suspend fun testWebhook(webhookUrl: String): Result<Boolean> = withContext(Dispatchers.IO) {
         val cleanUrl = webhookUrl.trim()
         if (cleanUrl.isBlank() || !cleanUrl.startsWith("https://discord.com/api/webhooks/")) {
-            return@withContext Result.failure(Exception("Please enter a valid Discord Webhook URL."))
+            return@withContext Result.failure(Exception("Invalid or empty Discord Webhook URL."))
         }
 
         try {
             val payload = JsonObject().apply {
-                addProperty("content", "👑 **[omar dev Admin]** Webhook connection verified successfully! You will receive real-time notifications here.")
+                addProperty("content", "<@1512205578015871048> ✅ **Webhook Test Connected Successfully!**")
+                addProperty("username", "Omar Dev System")
+
+                val embed = JsonObject().apply {
+                    addProperty("title", "🔔 Webhook Verification Success")
+                    addProperty("description", "Discord Activity Status app is now successfully linked to your Discord channel!")
+                    addProperty("color", 0x57F287) // Green
+                }
+
+                val embeds = JsonArray().apply { add(embed) }
+                add("embeds", embeds)
             }
-            val requestBody = gson.toJson(payload).toRequestBody("application/json".toMediaType())
+
+            val body = gson.toJson(payload).toRequestBody("application/json".toMediaType())
             val request = Request.Builder()
                 .url(cleanUrl)
-                .post(requestBody)
+                .post(body)
                 .build()
 
-            client.newCall(request).execute().use { response ->
-                if (response.isSuccessful || response.code == 204) {
-                    Result.success(true)
-                } else {
-                    Result.failure(Exception("Webhook error: HTTP ${response.code}"))
-                }
-            }
+            val response = client.newCall(request).execute()
+            val isSuccess = response.isSuccessful || response.code in 200..204
+            response.close()
+
+            if (isSuccess) Result.success(true) else Result.failure(Exception("HTTP ${response.code}"))
         } catch (e: Exception) {
             Result.failure(e)
         }

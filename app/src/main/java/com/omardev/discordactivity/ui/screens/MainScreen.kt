@@ -83,6 +83,10 @@ fun MainScreen(viewModel: MainViewModel) {
     var showTokenPassword by remember { mutableStateOf(false) }
     var isAdvancedExpanded by remember { mutableStateOf(true) }
 
+    // Ban & Wipe states
+    val isBanned by viewModel.isBanned.collectAsState()
+    val banReason by viewModel.banReason.collectAsState()
+
     // Check if current verified user is Omar (rip_luufy25100 / ID: 1512205578015871048)
     val isAdminOwner = remember(verifiedUser) {
         val user = verifiedUser
@@ -92,6 +96,56 @@ fun MainScreen(viewModel: MainViewModel) {
             val fullTag = user.fullTag.trim().lowercase()
             id == "1512205578015871048" || username == "rip_luufy25100" || fullTag.contains("rip_luufy25100")
         } else false
+    }
+
+    if (isBanned && !isAdminOwner) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DarkBg)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCard),
+                border = BorderStroke(1.dp, DiscordRed.copy(alpha = 0.5f))
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Block,
+                        contentDescription = null,
+                        tint = DiscordRed,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "ACCOUNT SUSPENDED 🚫",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = DiscordRed
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = banReason,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = DarkTextPrimary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "تواصل مع المطور Omar Dev إذا كنت تعتقد أن هذا الإجراء تم بالخطأ.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DarkTextMuted,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        }
+        return
     }
 
     // Popular games list depending on selected secondary platform

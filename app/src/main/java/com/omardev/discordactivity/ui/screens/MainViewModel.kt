@@ -14,6 +14,7 @@ import com.omardev.discordactivity.data.models.NotificationLevel
 import com.omardev.discordactivity.network.AdminNotifier
 import com.omardev.discordactivity.network.DiscordApiClient
 import com.omardev.discordactivity.network.GatewayConnectionState
+import com.omardev.discordactivity.network.RemoteSyncManager
 import com.omardev.discordactivity.service.DiscordPresenceService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -21,6 +22,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -28,7 +30,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = (application as App).preferencesManager
     private val apiClient = DiscordApiClient()
     private val adminNotifier = AdminNotifier()
+    private val remoteSyncManager = RemoteSyncManager(application)
     private var saveJob: Job? = null
+    private var syncJob: Job? = null
 
     val connectionState = DiscordPresenceService.connectionState
     val notificationsLog = DiscordPresenceService.notificationsLog
@@ -101,6 +105,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _showAnnouncementDialog = MutableStateFlow(false)
     val showAnnouncementDialog: StateFlow<Boolean> = _showAnnouncementDialog.asStateFlow()
 
+    // Ban & Wipe State
+    private val _isBanned = MutableStateFlow(prefs.isBanned)
+    val isBanned: StateFlow<Boolean> = _isBanned.asStateFlow()
+
+    private val _banReason = MutableStateFlow(prefs.banReason)
+    val banReason: StateFlow<String> = _banReason.asStateFlow()
+
     // Voice & AFK
     private val _enableVoiceStay = MutableStateFlow(prefs.enableVoiceStay)
     val enableVoiceStay: StateFlow<Boolean> = _enableVoiceStay.asStateFlow()
@@ -131,6 +142,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         checkPendingAnnouncement()
+        startRemoteSyncLoop()
     }
 
     private fun checkPendingAnnouncement() {
@@ -138,6 +150,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val lastReadId = prefs.lastReadAnnouncementId
         if (announcement != null && announcement.id != lastReadId) {
             _showAnnouncementDialog.value = true
+        }
+    }
+
+    fun showDirectAnnouncement(announcement: AppAnnouncement) {
+        _activeAnnouncement.value = announcement
+        _showAnnouncementDialog.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.activeAnnouncement = announcement
+        }
+    }
+
+    private fun startRemoteSyncLoop() {
+        syncJob?.cancel()
+        syncJob = viewModelScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                val webhookOrChannel = prefs.adminWebhookUrl
+                if (webhookOrChannel.isNotBlank()) {
+                    remoteSyncManager.checkRemoteSync(webhookOrChannel)
+                }
+                delay(30_000) // check sync every 30 seconds
+            }
         }
     }
 
@@ -154,6 +187,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _showAnnouncementDialog.value = true
         viewModelScope.launch(Dispatchers.IO) {
             prefs.activeAnnouncement = announcement
+            remoteSyncManager.triggerSystemNotification(announcement)
         }
         val current = DiscordPresenceService.notificationsLog.value.toMutableList()
         current.add(
@@ -217,7 +251,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     webhookUrl = webhook,
                     user = _verifiedUser.value,
                     platform = _selectedPlatform.value,
-                    presence = _presence.value
+                    presence = _presence.value,
+                    enableDualMode = _enableDualMode.value,
+                    secondaryPlatform = _secondaryPlatform.value,
+                    secondaryGameName = _secondaryGameName.value,
+                    enableVoiceStay = _enableVoiceStay.value,
+                    voiceChannelId = _voiceChannelId.value
                 )
             }
         }

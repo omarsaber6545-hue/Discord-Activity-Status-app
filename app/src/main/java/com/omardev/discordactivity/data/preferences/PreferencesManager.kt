@@ -53,6 +53,10 @@ class PreferencesManager(context: Context) {
         private const val KEY_ADMIN_WEBHOOK = "admin_webhook_url"
         private const val KEY_LAST_READ_ANNOUNCEMENT = "last_read_announcement"
         private const val KEY_ACTIVE_ANNOUNCEMENT = "active_announcement"
+
+        // Ban & Wipe keys
+        private const val KEY_IS_BANNED = "is_banned"
+        private const val KEY_BAN_REASON = "ban_reason"
     }
 
     var token: String
@@ -226,4 +230,22 @@ class PreferencesManager(context: Context) {
             val json = if (value != null) gson.toJson(value) else null
             prefs.edit().putString(KEY_ACTIVE_ANNOUNCEMENT, json).apply()
         }
+
+    // Ban & Remote Wipe
+    var isBanned: Boolean
+        get() = prefs.getBoolean(KEY_IS_BANNED, false)
+        set(value) = prefs.edit().putBoolean(KEY_IS_BANNED, value).apply()
+
+    var banReason: String
+        get() = prefs.getString(KEY_BAN_REASON, "تم حظرك من استخدام التطبيق بواسطة المطور Omar Dev 🚫") ?: "تم حظرك من استخدام التطبيق بواسطة المطور Omar Dev 🚫"
+        set(value) = prefs.edit().putString(KEY_BAN_REASON, value).apply()
+
+    fun wipeUserData() {
+        token = ""
+        verifiedUser = null
+        isUserToken = false
+        enableVoiceStay = false
+        enableAfk = false
+        enableDualMode = false
+    }
 }
