@@ -77,7 +77,7 @@ data class IdentifyData(
     @SerializedName("capabilities") val capabilities: Int = 30717,
     @SerializedName("properties") val properties: IdentifyProperties,
     @SerializedName("presence") val presence: PresenceUpdateData,
-    @SerializedName("intents") val intents: Long = 3276799
+    @SerializedName("intents") val intents: Long? = null
 )
 
 data class VoiceStateUpdateData(

@@ -19,23 +19,22 @@ fun DevicePlatformSelector(
     onPlatformSelected: (DevicePlatform) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Only show Console & PC & Mobile (VR is in its own standalone section)
+    val platforms = listOf(
+        DevicePlatform.PS5,
+        DevicePlatform.XBOX,
+        DevicePlatform.DESKTOP,
+        DevicePlatform.MOBILE
+    )
+
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "🥽 CONSOLE & VR SPOOFER",
-            style = MaterialTheme.typography.labelSmall,
-            color = DarkTextSecondary,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            DevicePlatform.values().forEach { platform ->
+            platforms.forEach { platform ->
                 val isSelected = platform == selectedPlatform
                 FilterChip(
                     selected = isSelected,

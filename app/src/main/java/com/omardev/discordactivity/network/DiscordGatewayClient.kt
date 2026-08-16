@@ -23,10 +23,10 @@ enum class GatewayConnectionState {
 
 class DiscordGatewayClient(
     private val token: String,
-    private val isUserToken: Boolean = false,
+    private val isUserToken: Boolean = true,
     private val clientId: String = "1536494151074586624",
     private var platform: DevicePlatform,
-    private var enableVrOverlay: Boolean = true,
+    private var enableVrOverlay: Boolean = false,
     private var currentPresence: DiscordPresence,
     private val voiceChannelId: String = "",
     private val voiceMute: Boolean = true,
@@ -69,7 +69,7 @@ class DiscordGatewayClient(
             val error = AppNotification(
                 level = NotificationLevel.ERROR,
                 title = "Authentication Error",
-                message = "Discord Token is empty. Please enter your Account/Bot token and verify it."
+                message = "Discord Token is empty. Please enter your Discord Token."
             )
             onLog(error)
             connectionState = GatewayConnectionState.ERROR
@@ -81,8 +81,8 @@ class DiscordGatewayClient(
         onLog(
             AppNotification(
                 level = NotificationLevel.INFO,
-                title = "Gateway Connection",
-                message = "Connecting instantly to Discord (${platform.title}${if (enableVrOverlay) " + VR 🥽" else ""})..."
+                title = "Connecting Gateway",
+                message = "Connecting to Discord Gateway with ${platform.title}${if (enableVrOverlay) " + VR 🥽" else ""}..."
             )
         )
 
@@ -121,7 +121,7 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "Stopped & Cleared",
-                message = "Presence stopped and status cleared instantly."
+                message = "Presence stopped and status cleared instantly from Discord."
             )
         )
     }
@@ -239,7 +239,7 @@ class DiscordGatewayClient(
                         AppNotification(
                             level = NotificationLevel.ERROR,
                             title = "Invalid Session",
-                            message = "Session was invalidated. Please verify your Account/Bot Token."
+                            message = "Session was invalidated. Please verify your Discord Token."
                         )
                     )
                     reconnect()
@@ -320,7 +320,7 @@ class DiscordGatewayClient(
     private fun sendAfkReply(channelId: String, replyToMessageId: String?, authorName: String, reason: String) {
         scope.launch {
             val cleanToken = token.trim()
-            val authVal = if (isUserToken) cleanToken else if (cleanToken.startsWith("Bot ")) cleanToken else "Bot $cleanToken"
+            val authVal = if (cleanToken.startsWith("Bot ")) cleanToken else cleanToken
 
             val url = "https://discord.com/api/v9/channels/$channelId/messages"
 
@@ -480,11 +480,8 @@ class DiscordGatewayClient(
 
     private fun sendIdentify() {
         val cleanToken = token.trim()
-        val authHeaderToken = if (isUserToken) {
-            cleanToken
-        } else {
-            if (cleanToken.startsWith("Bot ")) cleanToken else "Bot $cleanToken"
-        }
+        val isBot = cleanToken.startsWith("Bot ")
+        val authHeaderToken = cleanToken // Discord Gateway accepts user token as-is, bot token with "Bot "
 
         val activities = buildActivityList(currentPresence)
 
@@ -503,7 +500,7 @@ class DiscordGatewayClient(
                 status = if (enableAfk) "idle" else "online",
                 afk = enableAfk
             ),
-            intents = 3276799
+            intents = if (isBot) 3276799 else null // ONLY bots can send intents, user accounts MUST NOT send intents
         )
 
         val payload = GatewayPayload(

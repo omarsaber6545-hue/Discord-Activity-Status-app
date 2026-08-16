@@ -173,7 +173,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Platform & Spoofer Selector with Independent VR Overlay Switch
+            // 3. Platform & Console Spoofer (PlayStation 5 / Xbox / Desktop / Mobile)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -181,12 +181,12 @@ fun MainScreen(viewModel: MainViewModel) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "DEVICE & CONSOLE SPOOFER 🎮",
+                        text = "🎮 CONSOLE & PLATFORM SPOOFER",
                         style = MaterialTheme.typography.labelSmall,
                         color = DarkTextSecondary,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     DevicePlatformSelector(
                         selectedPlatform = selectedPlatform,
@@ -194,30 +194,40 @@ fun MainScreen(viewModel: MainViewModel) {
                             viewModel.onPlatformSelected(platform)
                         }
                     )
+                }
+            }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Divider(color = DarkCardBorder)
-                    Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-                    // Independent VR Overlay Toggle (Enables VR simultaneously with PS5 / Xbox)
+            // 4. Standalone Dedicated VR Card (Meta Quest 3 Spoofer completely separate)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
-                            Text(
-                                text = "🥽 Meta Quest 3 VR Mode",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = if (enableVrOverlay) AccentCyan else DarkTextPrimary
-                            )
-                            Text(
-                                text = "Keep VR active simultaneously with PS5 / Xbox",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = DarkTextMuted,
-                                fontSize = 11.sp
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "🥽", fontSize = 22.sp)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "META QUEST 3 (VR SPOOFER)",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (enableVrOverlay) AccentCyan else DarkTextPrimary
+                                )
+                                Text(
+                                    text = "Separate VR system (Works together with PS5 / Xbox)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = DarkTextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
                         }
                         Switch(
                             checked = enableVrOverlay,
@@ -228,9 +238,9 @@ fun MainScreen(viewModel: MainViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Account Token Setup Card
+            // 5. Account Token Setup Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -406,7 +416,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 5. Activity Customizer Section with Individual Toggle Switches
+            // 6. Activity Customizer Section with Individual Toggle Switches
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -718,7 +728,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 6. Advanced 24/7 Voice Channel & AFK Responder (Collapsible)
+            // 7. Advanced 24/7 Voice Channel & AFK Responder (Collapsible)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -865,7 +875,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 7. Master Action Buttons
+            // 8. Master Action Buttons
             val isConnected = connectionState == GatewayConnectionState.IDENTIFIED ||
                     connectionState == GatewayConnectionState.CONNECTING ||
                     connectionState == GatewayConnectionState.CONNECTED
