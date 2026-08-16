@@ -5,13 +5,24 @@
 =============================================================================
 """
 
+import sys
+import io
+
+# Fix Windows console UTF-8 & Emoji encoding
+try:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
 import discord
 from discord import app_commands
 from discord.ext import commands
 import json
 import os
 import time
-import sys
 
 CONFIG_FILE = "config.json"
 
