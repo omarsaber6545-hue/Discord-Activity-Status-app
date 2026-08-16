@@ -21,6 +21,9 @@ class PreferencesManager(context: Context) {
         private const val KEY_CLIENT_ID = "client_id"
         private const val KEY_DEVICE_PLATFORM = "device_platform"
         private const val KEY_ENABLE_VR_OVERLAY = "enable_vr_overlay"
+
+        // Voice Stay
+        private const val KEY_ENABLE_VOICE_STAY = "enable_voice_stay"
         private const val KEY_VOICE_CHANNEL_ID = "voice_channel_id"
         private const val KEY_VOICE_MUTE = "voice_mute"
         private const val KEY_VOICE_DEAF = "voice_deaf"
@@ -84,6 +87,11 @@ class PreferencesManager(context: Context) {
     var enableVrOverlay: Boolean
         get() = prefs.getBoolean(KEY_ENABLE_VR_OVERLAY, true)
         set(value) = prefs.edit().putBoolean(KEY_ENABLE_VR_OVERLAY, value).apply()
+
+    // 24/7 Voice Stay
+    var enableVoiceStay: Boolean
+        get() = prefs.getBoolean(KEY_ENABLE_VOICE_STAY, false)
+        set(value) = prefs.edit().putBoolean(KEY_ENABLE_VOICE_STAY, value).apply()
 
     var voiceChannelId: String
         get() = prefs.getString(KEY_VOICE_CHANNEL_ID, "") ?: ""

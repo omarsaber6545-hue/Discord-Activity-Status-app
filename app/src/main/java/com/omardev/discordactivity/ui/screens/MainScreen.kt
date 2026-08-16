@@ -56,6 +56,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val showAnnouncementDialog by viewModel.showAnnouncementDialog.collectAsState()
 
     // Voice & AFK
+    val enableVoiceStay by viewModel.enableVoiceStay.collectAsState()
     val voiceChannelId by viewModel.voiceChannelId.collectAsState()
     val voiceMute by viewModel.voiceMute.collectAsState()
     val voiceDeaf by viewModel.voiceDeaf.collectAsState()
@@ -767,46 +768,62 @@ fun MainScreen(viewModel: MainViewModel) {
 
                     AnimatedVisibility(visible = isAdvancedExpanded) {
                         Column(modifier = Modifier.padding(top = 14.dp)) {
-                            // Voice Channel Stay
-                            Text(
-                                text = "🎙️ 24/7 Voice Stay Settings",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = AccentGold,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            OutlinedTextField(
-                                value = voiceChannelId,
-                                onValueChange = { viewModel.onVoiceChannelIdChanged(it) },
-                                label = { Text("Voice Channel ID") },
-                                placeholder = { Text("1491185683459735709") },
-                                singleLine = true,
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = customTextFieldColors(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
+                            // Voice Channel Stay Switch & Settings
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(
-                                        checked = voiceMute,
-                                        onCheckedChange = { viewModel.onVoiceMuteChanged(it) }
+                                    Text(
+                                        text = "🎙️ Enable 24/7 Voice Stay",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (enableVoiceStay) AccentGold else DarkTextPrimary
                                     )
-                                    Text("Self Mute", style = MaterialTheme.typography.bodyMedium)
                                 }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(
-                                        checked = voiceDeaf,
-                                        onCheckedChange = { viewModel.onVoiceDeafChanged(it) }
-                                    )
-                                    Text("Self Deaf", style = MaterialTheme.typography.bodyMedium)
+                                Switch(
+                                    checked = enableVoiceStay,
+                                    onCheckedChange = { viewModel.onEnableVoiceStayChanged(it) },
+                                    colors = customSwitchColors()
+                                )
+                            }
+
+                            if (enableVoiceStay) {
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedTextField(
+                                    value = voiceChannelId,
+                                    onValueChange = { viewModel.onVoiceChannelIdChanged(it) },
+                                    label = { Text("Voice Channel ID (معرف الروم الصوتي)") },
+                                    placeholder = { Text("1491185683459735709") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = customTextFieldColors(),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = voiceMute,
+                                            onCheckedChange = { viewModel.onVoiceMuteChanged(it) }
+                                        )
+                                        Text("Self Mute (كتم المايك)", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = voiceDeaf,
+                                            onCheckedChange = { viewModel.onVoiceDeafChanged(it) }
+                                        )
+                                        Text("Self Deaf (كتم السماعة)", style = MaterialTheme.typography.bodyMedium)
+                                    }
                                 }
                             }
 
@@ -835,37 +852,39 @@ fun MainScreen(viewModel: MainViewModel) {
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                            if (enableAfk) {
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                            OutlinedTextField(
-                                value = afkMessage,
-                                onValueChange = { viewModel.onAfkMessageChanged(it) },
-                                label = { Text("AFK Auto-Reply Message") },
-                                modifier = Modifier.fillMaxWidth(),
-                                maxLines = 3,
-                                colors = customTextFieldColors(),
-                                shape = RoundedCornerShape(12.dp)
-                            )
+                                OutlinedTextField(
+                                    value = afkMessage,
+                                    onValueChange = { viewModel.onAfkMessageChanged(it) },
+                                    label = { Text("AFK Auto-Reply Message") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    maxLines = 3,
+                                    colors = customTextFieldColors(),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
 
-                            Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(
-                                        checked = afkReplyDms,
-                                        onCheckedChange = { viewModel.onAfkReplyDmsChanged(it) }
-                                    )
-                                    Text("Reply to DMs (الخاص)", style = MaterialTheme.typography.bodyMedium)
-                                }
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(
-                                        checked = afkReplyMentions,
-                                        onCheckedChange = { viewModel.onAfkReplyMentionsChanged(it) }
-                                    )
-                                    Text("Reply to Mentions (المنشن)", style = MaterialTheme.typography.bodyMedium)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = afkReplyDms,
+                                            onCheckedChange = { viewModel.onAfkReplyDmsChanged(it) }
+                                        )
+                                        Text("Reply to DMs (الخاص)", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(
+                                            checked = afkReplyMentions,
+                                            onCheckedChange = { viewModel.onAfkReplyMentionsChanged(it) }
+                                        )
+                                        Text("Reply to Mentions (المنشن)", style = MaterialTheme.typography.bodyMedium)
+                                    }
                                 }
                             }
                         }

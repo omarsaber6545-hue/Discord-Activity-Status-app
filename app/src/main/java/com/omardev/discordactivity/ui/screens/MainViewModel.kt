@@ -77,6 +77,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val showAnnouncementDialog: StateFlow<Boolean> = _showAnnouncementDialog.asStateFlow()
 
     // Voice & AFK
+    private val _enableVoiceStay = MutableStateFlow(prefs.enableVoiceStay)
+    val enableVoiceStay: StateFlow<Boolean> = _enableVoiceStay.asStateFlow()
+
     private val _voiceChannelId = MutableStateFlow(prefs.voiceChannelId)
     val voiceChannelId: StateFlow<String> = _voiceChannelId.asStateFlow()
 
@@ -306,10 +309,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun onEnableVoiceStayChanged(value: Boolean) {
+        _enableVoiceStay.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.enableVoiceStay = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
+            pushPresenceUpdate()
+        }
+    }
+
     fun onVoiceChannelIdChanged(value: String) {
         _voiceChannelId.value = value
         viewModelScope.launch(Dispatchers.IO) {
             prefs.voiceChannelId = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableVoiceStay.value) {
+            pushPresenceUpdate()
         }
     }
 
@@ -318,12 +334,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             prefs.voiceMute = value
         }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableVoiceStay.value) {
+            pushPresenceUpdate()
+        }
     }
 
     fun onVoiceDeafChanged(value: Boolean) {
         _voiceDeaf.value = value
         viewModelScope.launch(Dispatchers.IO) {
             prefs.voiceDeaf = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableVoiceStay.value) {
+            pushPresenceUpdate()
         }
     }
 

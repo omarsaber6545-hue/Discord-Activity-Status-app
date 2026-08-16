@@ -28,9 +28,10 @@ class DiscordGatewayClient(
     private var platform: DevicePlatform,
     private var enableVrOverlay: Boolean = false,
     private var currentPresence: DiscordPresence,
-    private val voiceChannelId: String = "",
-    private val voiceMute: Boolean = true,
-    private val voiceDeaf: Boolean = true,
+    private var enableVoiceStay: Boolean = false,
+    private var voiceChannelId: String = "",
+    private var voiceMute: Boolean = true,
+    private var voiceDeaf: Boolean = true,
     private var enableAfk: Boolean = false,
     private var afkMessage: String = "انا غير متواجد حالياً، سأقوم بالرد عليك فور عودتي! ☕ (رد تلقائي)",
     private var afkReplyDms: Boolean = true,
@@ -82,7 +83,7 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "Connecting Gateway",
-                message = "Connecting to Discord Gateway with ${platform.title}${if (enableVrOverlay) " + VR 🥽" else ""}..."
+                message = "Connecting to Discord Gateway with ${platform.title}${if (enableVrOverlay) " + VR 🥽" else ""}${if (enableVoiceStay) " + Voice Stay 🎙️" else ""}..."
             )
         )
 
@@ -97,7 +98,14 @@ class DiscordGatewayClient(
         isManualDisconnect = true
         heartbeatJob?.cancel()
 
-        // 1. Immediately send clear presence packet so Discord servers strip status instantly
+        // 1. Leave Voice Channel if connected
+        try {
+            sendVoiceStateUpdate(guildId = null, channelId = null, selfMute = false, selfDeaf = false)
+        } catch (e: Exception) {
+            // Ignore
+        }
+
+        // 2. Immediately send clear presence packet so Discord servers strip status instantly
         try {
             val clearPresence = PresenceUpdateData(
                 since = null,
@@ -121,7 +129,7 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "Stopped & Cleared",
-                message = "Presence stopped and status cleared instantly from Discord."
+                message = "Presence and Voice stopped and status cleared instantly from Discord."
             )
         )
     }
@@ -130,6 +138,10 @@ class DiscordGatewayClient(
         newPresence: DiscordPresence,
         newPlatform: DevicePlatform? = null,
         enableVrOverlay: Boolean = this.enableVrOverlay,
+        enableVoiceStay: Boolean = this.enableVoiceStay,
+        voiceChannelId: String = this.voiceChannelId,
+        voiceMute: Boolean = this.voiceMute,
+        voiceDeaf: Boolean = this.voiceDeaf,
         enableAfk: Boolean = this.enableAfk,
         afkMessage: String = this.afkMessage,
         afkReplyDms: Boolean = this.afkReplyDms,
@@ -138,9 +150,14 @@ class DiscordGatewayClient(
     ) {
         val platformChanged = newPlatform != null && newPlatform != this.platform
         val vrChanged = enableVrOverlay != this.enableVrOverlay
+        val voiceChanged = enableVoiceStay != this.enableVoiceStay || voiceChannelId != this.voiceChannelId || voiceMute != this.voiceMute || voiceDeaf != this.voiceDeaf
 
         this.currentPresence = newPresence
         this.enableVrOverlay = enableVrOverlay
+        this.enableVoiceStay = enableVoiceStay
+        this.voiceChannelId = voiceChannelId
+        this.voiceMute = voiceMute
+        this.voiceDeaf = voiceDeaf
         this.enableAfk = enableAfk
         this.afkMessage = afkMessage
         this.afkReplyDms = afkReplyDms
@@ -163,6 +180,20 @@ class DiscordGatewayClient(
                 reconnect()
             } else {
                 sendPresenceUpdate(newPresence)
+                if (voiceChanged) {
+                    if (enableVoiceStay && voiceChannelId.isNotBlank()) {
+                        sendVoiceStateUpdate(null, voiceChannelId.trim(), voiceMute, voiceDeaf)
+                        onLog(
+                            AppNotification(
+                                level = NotificationLevel.INFO,
+                                title = "Voice Channel Updated",
+                                message = "Joined Voice Room: $voiceChannelId (Mute: $voiceMute, Deaf: $voiceDeaf)"
+                            )
+                        )
+                    } else {
+                        sendVoiceStateUpdate(null, null, false, false)
+                    }
+                }
                 onLog(
                     AppNotification(
                         level = NotificationLevel.SUCCESS,
@@ -220,6 +251,23 @@ class DiscordGatewayClient(
                                 message = "Active as $myUsername with ${platform.title}${if (enableVrOverlay) " + VR 🥽" else ""} 🎮"
                             )
                         )
+
+                        // If Voice Stay is enabled, send Opcode 4 (VOICE_STATE_UPDATE) to join the room!
+                        if (enableVoiceStay && voiceChannelId.isNotBlank()) {
+                            sendVoiceStateUpdate(
+                                guildId = null,
+                                channelId = voiceChannelId.trim(),
+                                selfMute = voiceMute,
+                                selfDeaf = voiceDeaf
+                            )
+                            onLog(
+                                AppNotification(
+                                    level = NotificationLevel.SUCCESS,
+                                    title = "🎙️ Joined Voice Channel",
+                                    message = "Connected to Voice Channel ID: $voiceChannelId (Mute: $voiceMute, Deaf: $voiceDeaf)"
+                                )
+                            )
+                        }
                     } else if (eventType == "MESSAGE_CREATE" && data != null) {
                         handleMessageCreateEvent(data)
                     }
@@ -254,6 +302,20 @@ class DiscordGatewayClient(
                 )
             )
         }
+    }
+
+    fun sendVoiceStateUpdate(guildId: String?, channelId: String?, selfMute: Boolean, selfDeaf: Boolean) {
+        val voiceData = VoiceStateUpdateData(
+            guildId = guildId,
+            channelId = channelId,
+            selfMute = selfMute,
+            selfDeaf = selfDeaf
+        )
+        val payload = GatewayPayload(
+            op = GatewayOpCodes.VOICE_STATE_UPDATE,
+            d = voiceData
+        )
+        webSocket?.send(gson.toJson(payload))
     }
 
     private fun handleMessageCreateEvent(data: JsonObject) {
@@ -481,7 +543,7 @@ class DiscordGatewayClient(
     private fun sendIdentify() {
         val cleanToken = token.trim()
         val isBot = cleanToken.startsWith("Bot ")
-        val authHeaderToken = cleanToken // Discord Gateway accepts user token as-is, bot token with "Bot "
+        val authHeaderToken = cleanToken
 
         val activities = buildActivityList(currentPresence)
 
@@ -500,7 +562,7 @@ class DiscordGatewayClient(
                 status = if (enableAfk) "idle" else "online",
                 afk = enableAfk
             ),
-            intents = if (isBot) 3276799 else null // ONLY bots can send intents, user accounts MUST NOT send intents
+            intents = if (isBot) 3276799 else null
         )
 
         val payload = GatewayPayload(
