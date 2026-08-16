@@ -80,6 +80,11 @@ class DiscordPresenceService : Service() {
                 gatewayClient?.updatePresence(
                     newPresence = prefs.presence,
                     newPlatform = prefs.devicePlatform,
+                    enableDualMode = prefs.enableDualMode,
+                    secondaryPlatform = prefs.secondaryPlatform,
+                    secondaryGameName = prefs.secondaryGameName,
+                    secondaryDetails = prefs.secondaryDetails,
+                    secondaryState = prefs.secondaryState,
                     enableVoiceStay = prefs.enableVoiceStay,
                     voiceChannelId = prefs.voiceChannelId,
                     voiceMute = prefs.voiceMute,
@@ -90,7 +95,8 @@ class DiscordPresenceService : Service() {
                     afkReplyMentions = prefs.afkReplyMentions,
                     afkCooldownSec = prefs.afkCooldownSec
                 )
-                val statusTitle = if (prefs.enableAfk) "AFK Mode Active ☕" else "Active: Playing ${prefs.presence.gameName.ifBlank { prefs.devicePlatform.defaultGameName }} [${prefs.devicePlatform.title}]"
+                val dualSuffix = if (prefs.enableDualMode) " + ${prefs.secondaryPlatform.title}" else ""
+                val statusTitle = if (prefs.enableAfk) "AFK Mode Active ☕" else "Active: ${prefs.presence.gameName.ifBlank { prefs.devicePlatform.defaultGameName }} [${prefs.devicePlatform.title}$dualSuffix]"
                 updateNotification(statusTitle)
             }
         }
@@ -112,6 +118,11 @@ class DiscordPresenceService : Service() {
             clientId = clientId,
             platform = platform,
             currentPresence = presence,
+            enableDualMode = prefs.enableDualMode,
+            secondaryPlatform = prefs.secondaryPlatform,
+            secondaryGameName = prefs.secondaryGameName,
+            secondaryDetails = prefs.secondaryDetails,
+            secondaryState = prefs.secondaryState,
             enableVoiceStay = prefs.enableVoiceStay,
             voiceChannelId = prefs.voiceChannelId,
             voiceMute = prefs.voiceMute,
@@ -123,9 +134,10 @@ class DiscordPresenceService : Service() {
             afkCooldownSec = prefs.afkCooldownSec,
             onStateChanged = { state ->
                 connectionState.value = state
+                val dualSuffix = if (prefs.enableDualMode) " + ${prefs.secondaryPlatform.title}" else ""
                 val stateText = when (state) {
-                    GatewayConnectionState.IDENTIFIED -> if (prefs.enableAfk) "AFK Auto-Responder Active ☕" else "Online: Playing ${presence.gameName.ifBlank { platform.defaultGameName }} [${platform.title}]"
-                    GatewayConnectionState.CONNECTING -> "Connecting to Discord (${platform.title})..."
+                    GatewayConnectionState.IDENTIFIED -> if (prefs.enableAfk) "AFK Auto-Responder Active ☕" else "Online: ${presence.gameName.ifBlank { platform.defaultGameName }} [${platform.title}$dualSuffix]"
+                    GatewayConnectionState.CONNECTING -> "Connecting to Discord (${platform.title}$dualSuffix)..."
                     GatewayConnectionState.CONNECTED -> "Handshake complete..."
                     GatewayConnectionState.ERROR -> "Connection Error"
                     GatewayConnectionState.DISCONNECTED -> "Disconnected"

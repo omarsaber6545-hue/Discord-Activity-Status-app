@@ -20,7 +20,13 @@ class PreferencesManager(context: Context) {
         private const val KEY_VERIFIED_USER = "verified_user"
         private const val KEY_CLIENT_ID = "client_id"
         private const val KEY_DEVICE_PLATFORM = "device_platform"
-        private const val KEY_ENABLE_VR_OVERLAY = "enable_vr_overlay"
+
+        // Dual Simultaneous Mode
+        private const val KEY_ENABLE_DUAL_MODE = "enable_dual_mode"
+        private const val KEY_SECONDARY_PLATFORM = "secondary_platform"
+        private const val KEY_SECONDARY_GAME_NAME = "secondary_game_name"
+        private const val KEY_SECONDARY_DETAILS = "secondary_details"
+        private const val KEY_SECONDARY_STATE = "secondary_state"
 
         // Voice Stay
         private const val KEY_ENABLE_VOICE_STAY = "enable_voice_stay"
@@ -84,9 +90,35 @@ class PreferencesManager(context: Context) {
             prefs.edit().putString(KEY_DEVICE_PLATFORM, value.name).apply()
         }
 
-    var enableVrOverlay: Boolean
-        get() = prefs.getBoolean(KEY_ENABLE_VR_OVERLAY, true)
-        set(value) = prefs.edit().putBoolean(KEY_ENABLE_VR_OVERLAY, value).apply()
+    // Dual Simultaneous Mode
+    var enableDualMode: Boolean
+        get() = prefs.getBoolean(KEY_ENABLE_DUAL_MODE, false)
+        set(value) = prefs.edit().putBoolean(KEY_ENABLE_DUAL_MODE, value).apply()
+
+    var secondaryPlatform: DevicePlatform
+        get() {
+            val name = prefs.getString(KEY_SECONDARY_PLATFORM, DevicePlatform.VR.name) ?: DevicePlatform.VR.name
+            return try {
+                DevicePlatform.valueOf(name)
+            } catch (e: Exception) {
+                DevicePlatform.VR
+            }
+        }
+        set(value) {
+            prefs.edit().putString(KEY_SECONDARY_PLATFORM, value.name).apply()
+        }
+
+    var secondaryGameName: String
+        get() = prefs.getString(KEY_SECONDARY_GAME_NAME, "Virtual Reality VR 🥽") ?: "Virtual Reality VR 🥽"
+        set(value) = prefs.edit().putString(KEY_SECONDARY_GAME_NAME, value).apply()
+
+    var secondaryDetails: String
+        get() = prefs.getString(KEY_SECONDARY_DETAILS, "Playing in VR") ?: "Playing in VR"
+        set(value) = prefs.edit().putString(KEY_SECONDARY_DETAILS, value).apply()
+
+    var secondaryState: String
+        get() = prefs.getString(KEY_SECONDARY_STATE, "Meta Quest 3 Active") ?: "Meta Quest 3 Active"
+        set(value) = prefs.edit().putString(KEY_SECONDARY_STATE, value).apply()
 
     // 24/7 Voice Stay
     var enableVoiceStay: Boolean

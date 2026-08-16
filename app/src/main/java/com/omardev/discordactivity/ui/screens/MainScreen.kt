@@ -41,6 +41,14 @@ fun MainScreen(viewModel: MainViewModel) {
     val presets by viewModel.presets.collectAsState()
     val selectedPresetName by viewModel.selectedPresetName.collectAsState()
     val selectedPlatform by viewModel.selectedPlatform.collectAsState()
+
+    // Dual mode states
+    val enableDualMode by viewModel.enableDualMode.collectAsState()
+    val secondaryPlatform by viewModel.secondaryPlatform.collectAsState()
+    val secondaryGameName by viewModel.secondaryGameName.collectAsState()
+    val secondaryDetails by viewModel.secondaryDetails.collectAsState()
+    val secondaryState by viewModel.secondaryState.collectAsState()
+
     val token by viewModel.token.collectAsState()
     val verifiedUser by viewModel.verifiedUser.collectAsState()
     val isVerifying by viewModel.isVerifying.collectAsState()
@@ -173,7 +181,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Platform & Console Spoofer (PS5, Xbox, VR, Mobile, Desktop)
+            // 3. Primary Platform Selector (PS5, Xbox, VR, Mobile, Desktop)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -181,7 +189,7 @@ fun MainScreen(viewModel: MainViewModel) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "🎮 DEVICE & PLATFORM SPOOFER",
+                        text = "🎮 PRIMARY PLATFORM (المنصة الأساسية الأولى)",
                         style = MaterialTheme.typography.labelSmall,
                         color = DarkTextSecondary,
                         fontWeight = FontWeight.Bold
@@ -197,9 +205,84 @@ fun MainScreen(viewModel: MainViewModel) {
                 }
             }
 
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 4. Dual Simultaneous Platform Card (تشغيل حاجتين مع بعض زي VR وبلايستيشن)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "🔥", fontSize = 20.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "DUAL SIMULTANEOUS MODE",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (enableDualMode) AccentGold else DarkTextPrimary
+                                )
+                                Text(
+                                    text = "تشغيل منصتين معاً في نفس الوقت (مثال: VR + بلايستيشن)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = DarkTextMuted,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = enableDualMode,
+                            onCheckedChange = { viewModel.onEnableDualModeChanged(it) },
+                            colors = customSwitchColors()
+                        )
+                    }
+
+                    if (enableDualMode) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Divider(color = DarkCardBorder)
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "اختر المنصة الثانية المشتركة (Secondary Device):",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = AccentGold,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        DevicePlatformSelector(
+                            selectedPlatform = secondaryPlatform,
+                            onPlatformSelected = { platform ->
+                                viewModel.onSecondaryPlatformSelected(platform)
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        OutlinedTextField(
+                            value = secondaryGameName,
+                            onValueChange = { viewModel.onSecondaryGameNameChanged(it) },
+                            label = { Text("Secondary Activity Name") },
+                            placeholder = { Text(secondaryPlatform.defaultGameName) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 4. Account Token Setup Card
+            // 5. Account Token Setup Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -375,7 +458,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 5. Activity Customizer Section with Individual Toggle Switches
+            // 6. Activity Customizer Section with Individual Toggle Switches
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -687,7 +770,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 6. Advanced 24/7 Voice Channel & AFK Responder (Collapsible)
+            // 7. Advanced 24/7 Voice Channel & AFK Responder (Collapsible)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -852,7 +935,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 7. Master Action Buttons
+            // 8. Master Action Buttons
             val isConnected = connectionState == GatewayConnectionState.IDENTIFIED ||
                     connectionState == GatewayConnectionState.CONNECTING ||
                     connectionState == GatewayConnectionState.CONNECTED

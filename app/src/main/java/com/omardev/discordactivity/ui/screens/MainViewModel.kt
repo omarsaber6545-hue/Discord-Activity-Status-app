@@ -42,6 +42,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedPlatform = MutableStateFlow(prefs.devicePlatform)
     val selectedPlatform: StateFlow<DevicePlatform> = _selectedPlatform.asStateFlow()
 
+    // Dual Mode states
+    private val _enableDualMode = MutableStateFlow(prefs.enableDualMode)
+    val enableDualMode: StateFlow<Boolean> = _enableDualMode.asStateFlow()
+
+    private val _secondaryPlatform = MutableStateFlow(prefs.secondaryPlatform)
+    val secondaryPlatform: StateFlow<DevicePlatform> = _secondaryPlatform.asStateFlow()
+
+    private val _secondaryGameName = MutableStateFlow(prefs.secondaryGameName)
+    val secondaryGameName: StateFlow<String> = _secondaryGameName.asStateFlow()
+
+    private val _secondaryDetails = MutableStateFlow(prefs.secondaryDetails)
+    val secondaryDetails: StateFlow<String> = _secondaryDetails.asStateFlow()
+
+    private val _secondaryState = MutableStateFlow(prefs.secondaryState)
+    val secondaryState: StateFlow<String> = _secondaryState.asStateFlow()
+
     private val _token = MutableStateFlow(prefs.token)
     val token: StateFlow<String> = _token.asStateFlow()
 
@@ -270,6 +286,63 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             prefs.devicePlatform = platform
         }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
+            pushPresenceUpdate()
+        }
+    }
+
+    // Dual Mode Handlers
+    fun onEnableDualModeChanged(value: Boolean) {
+        _enableDualMode.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.enableDualMode = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
+            pushPresenceUpdate()
+        }
+    }
+
+    fun onSecondaryPlatformSelected(platform: DevicePlatform) {
+        _secondaryPlatform.value = platform
+        _secondaryGameName.value = platform.defaultGameName
+        _secondaryDetails.value = platform.defaultDetails
+        _secondaryState.value = platform.defaultState
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.secondaryPlatform = platform
+            prefs.secondaryGameName = platform.defaultGameName
+            prefs.secondaryDetails = platform.defaultDetails
+            prefs.secondaryState = platform.defaultState
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
+            pushPresenceUpdate()
+        }
+    }
+
+    fun onSecondaryGameNameChanged(value: String) {
+        _secondaryGameName.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.secondaryGameName = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableDualMode.value) {
+            pushPresenceUpdate()
+        }
+    }
+
+    fun onSecondaryDetailsChanged(value: String) {
+        _secondaryDetails.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.secondaryDetails = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableDualMode.value) {
+            pushPresenceUpdate()
+        }
+    }
+
+    fun onSecondaryStateChanged(value: String) {
+        _secondaryState.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.secondaryState = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableDualMode.value) {
             pushPresenceUpdate()
         }
     }

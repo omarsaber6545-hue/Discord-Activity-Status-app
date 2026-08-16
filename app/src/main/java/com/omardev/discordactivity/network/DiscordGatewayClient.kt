@@ -27,6 +27,11 @@ class DiscordGatewayClient(
     private val clientId: String = "1536494151074586624",
     private var platform: DevicePlatform,
     private var currentPresence: DiscordPresence,
+    private var enableDualMode: Boolean = false,
+    private var secondaryPlatform: DevicePlatform = DevicePlatform.VR,
+    private var secondaryGameName: String = "Virtual Reality VR 🥽",
+    private var secondaryDetails: String = "Playing in VR",
+    private var secondaryState: String = "Meta Quest 3 Active",
     private var enableVoiceStay: Boolean = false,
     private var voiceChannelId: String = "",
     private var voiceMute: Boolean = true,
@@ -47,7 +52,7 @@ class DiscordGatewayClient(
         .build()
 
     private val apiClient = DiscordApiClient()
-    private val gson = Gson() // Standard Gson omits null fields, which Discord Gateway strictly requires!
+    private val gson = Gson()
     private var webSocket: WebSocket? = null
     private var scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var heartbeatJob: Job? = null
@@ -81,11 +86,12 @@ class DiscordGatewayClient(
 
         isManualDisconnect = false
         connectionState = GatewayConnectionState.CONNECTING
+        val dualMsg = if (enableDualMode) " + ${secondaryPlatform.title} (Dual Mode)" else ""
         onLog(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "Connecting Gateway",
-                message = "Connecting to Discord Gateway with signature: ${platform.title}..."
+                message = "Connecting to Discord Gateway: ${platform.title}$dualMsg..."
             )
         )
 
@@ -141,6 +147,11 @@ class DiscordGatewayClient(
     fun updatePresence(
         newPresence: DiscordPresence,
         newPlatform: DevicePlatform? = null,
+        enableDualMode: Boolean = this.enableDualMode,
+        secondaryPlatform: DevicePlatform = this.secondaryPlatform,
+        secondaryGameName: String = this.secondaryGameName,
+        secondaryDetails: String = this.secondaryDetails,
+        secondaryState: String = this.secondaryState,
         enableVoiceStay: Boolean = this.enableVoiceStay,
         voiceChannelId: String = this.voiceChannelId,
         voiceMute: Boolean = this.voiceMute,
@@ -152,9 +163,15 @@ class DiscordGatewayClient(
         afkCooldownSec: Int = this.afkCooldownSec
     ) {
         val platformChanged = newPlatform != null && newPlatform != this.platform
+        val dualChanged = enableDualMode != this.enableDualMode || secondaryPlatform != this.secondaryPlatform
         val voiceChanged = enableVoiceStay != this.enableVoiceStay || voiceChannelId != this.voiceChannelId || voiceMute != this.voiceMute || voiceDeaf != this.voiceDeaf
 
         this.currentPresence = newPresence
+        this.enableDualMode = enableDualMode
+        this.secondaryPlatform = secondaryPlatform
+        this.secondaryGameName = secondaryGameName
+        this.secondaryDetails = secondaryDetails
+        this.secondaryState = secondaryState
         this.enableVoiceStay = enableVoiceStay
         this.voiceChannelId = voiceChannelId
         this.voiceMute = voiceMute
@@ -170,12 +187,12 @@ class DiscordGatewayClient(
         }
 
         if (connectionState == GatewayConnectionState.IDENTIFIED) {
-            if (platformChanged) {
+            if (platformChanged || dualChanged) {
                 onLog(
                     AppNotification(
                         level = NotificationLevel.INFO,
                         title = "Platform Switched",
-                        message = "Reconnecting Gateway to apply ${platform.title} hardware signature..."
+                        message = "Reconnecting Gateway for ${platform.title}${if (enableDualMode) " + ${secondaryPlatform.title}" else ""}..."
                     )
                 )
                 reconnect()
@@ -188,7 +205,7 @@ class DiscordGatewayClient(
                     AppNotification(
                         level = NotificationLevel.SUCCESS,
                         title = "Presence Updated",
-                        message = "Active Status: Playing ${newPresence.gameName.ifBlank { platform.defaultGameName }} [${platform.title}]"
+                        message = "Active Status: ${newPresence.gameName.ifBlank { platform.defaultGameName }} [${platform.title}]"
                     )
                 )
             }
@@ -237,11 +254,12 @@ class DiscordGatewayClient(
                         myUserId = botUser.get("id")?.asString ?: ""
                         myUsername = botUser.get("username")?.asString ?: "Discord Account"
                         connectionState = GatewayConnectionState.IDENTIFIED
+                        val dualTxt = if (enableDualMode) " + ${secondaryPlatform.title}" else ""
                         onLog(
                             AppNotification(
                                 level = NotificationLevel.SUCCESS,
                                 title = "Logged in Successfully",
-                                message = "Active as $myUsername with ${platform.title} 🎮"
+                                message = "Active as $myUsername with ${platform.title}$dualTxt 🎮"
                             )
                         )
 
@@ -478,7 +496,6 @@ class DiscordGatewayClient(
     private fun startHeartbeat(intervalMs: Long) {
         heartbeatJob?.cancel()
         heartbeatJob = scope.launch {
-            // First heartbeat jitter as recommended by Discord Gateway docs
             delay((intervalMs * 0.5).toLong())
             while (isActive) {
                 sendHeartbeat()
@@ -494,6 +511,9 @@ class DiscordGatewayClient(
     }
 
     private fun buildActivityList(presence: DiscordPresence): List<ActivityData> {
+        val list = mutableListOf<ActivityData>()
+
+        // 1. Primary Activity (e.g. PlayStation 5 / Xbox / PC / Custom Game)
         val gameName = presence.gameName.ifBlank { platform.defaultGameName }.trim()
         val details = if (presence.enableDetails && presence.details.isNotBlank()) presence.details.trim() else platform.defaultDetails
         val state = if (presence.enableState && presence.state.isNotBlank()) presence.state.trim() else platform.defaultState
@@ -542,7 +562,7 @@ class DiscordGatewayClient(
 
         val appId = if (hasRichAssets) clientId.trim().ifBlank { "1536494151074586624" } else null
 
-        val mainActivity = ActivityData(
+        val primaryActivity = ActivityData(
             name = gameName,
             type = 0,
             applicationId = appId,
@@ -555,8 +575,27 @@ class DiscordGatewayClient(
             buttons = buttonLabels.ifEmpty { null },
             metadata = metadata
         )
+        list.add(primaryActivity)
 
-        return listOf(mainActivity)
+        // 2. Secondary Simultaneous Activity (e.g. Meta Quest 3 VR / Second Console)
+        if (enableDualMode) {
+            val secName = secondaryGameName.ifBlank { secondaryPlatform.defaultGameName }.trim()
+            val secDetails = secondaryDetails.ifBlank { secondaryPlatform.defaultDetails }.trim()
+            val secState = secondaryState.ifBlank { secondaryPlatform.defaultState }.trim()
+
+            val secondaryActivity = ActivityData(
+                name = secName,
+                type = 0,
+                details = secDetails,
+                state = secState,
+                platform = secondaryPlatform.platformKey,
+                flags = if (secondaryPlatform.flags > 0) secondaryPlatform.flags else null,
+                timestamps = timestamps
+            )
+            list.add(secondaryActivity)
+        }
+
+        return list
     }
 
     private fun sendIdentify() {
