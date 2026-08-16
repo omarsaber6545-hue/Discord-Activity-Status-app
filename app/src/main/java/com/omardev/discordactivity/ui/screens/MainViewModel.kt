@@ -13,6 +13,9 @@ import com.omardev.discordactivity.data.models.NotificationLevel
 import com.omardev.discordactivity.network.DiscordApiClient
 import com.omardev.discordactivity.network.GatewayConnectionState
 import com.omardev.discordactivity.service.DiscordPresenceService
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +25,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = (application as App).preferencesManager
     private val apiClient = DiscordApiClient()
+    private var saveJob: Job? = null
 
     val connectionState = DiscordPresenceService.connectionState
     val notificationsLog = DiscordPresenceService.notificationsLog
@@ -77,7 +81,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onTokenChanged(value: String) {
         _token.value = value
-        prefs.token = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.token = value
+        }
     }
 
     fun verifyToken() {
@@ -96,12 +102,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
             result.onSuccess { user ->
                 _verifiedUser.value = user
-                prefs.verifiedUser = user
-                prefs.isUserToken = user.isUserToken
                 _verificationMessage.value = if (user.isUserToken) {
                     "✅ Account Verified: ${user.fullTag}"
                 } else {
                     "✅ Bot Account Verified: ${user.displayName}"
+                }
+
+                viewModelScope.launch(Dispatchers.IO) {
+                    prefs.verifiedUser = user
+                    prefs.isUserToken = user.isUserToken
                 }
 
                 val current = DiscordPresenceService.notificationsLog.value.toMutableList()
@@ -132,12 +141,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onClientIdChanged(value: String) {
         _clientId.value = value
-        prefs.clientId = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.clientId = value
+        }
     }
 
     fun onPlatformSelected(platform: DevicePlatform) {
         _selectedPlatform.value = platform
-        prefs.devicePlatform = platform
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.devicePlatform = platform
+        }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
             pushPresenceUpdate()
         }
@@ -145,9 +158,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onPresetSelected(preset: ActivityPreset) {
         _selectedPresetName.value = preset.name
-        prefs.activePresetName = preset.name
-        _presence.value = preset.presence.copy(startTimestamp = System.currentTimeMillis())
-        prefs.presence = _presence.value
+        val newPresence = preset.presence.copy(startTimestamp = System.currentTimeMillis())
+        _presence.value = newPresence
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.activePresetName = preset.name
+            prefs.presence = newPresence
+        }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
             pushPresenceUpdate()
         }
@@ -155,42 +171,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updatePresenceData(newPresence: DiscordPresence) {
         _presence.value = newPresence
-        prefs.presence = newPresence
+        saveJob?.cancel()
+        saveJob = viewModelScope.launch(Dispatchers.IO) {
+            delay(400) // Debounce saving to disk for maximum UI performance
+            prefs.presence = newPresence
+        }
     }
 
     fun onVoiceChannelIdChanged(value: String) {
         _voiceChannelId.value = value
-        prefs.voiceChannelId = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.voiceChannelId = value
+        }
     }
 
     fun onVoiceMuteChanged(value: Boolean) {
         _voiceMute.value = value
-        prefs.voiceMute = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.voiceMute = value
+        }
     }
 
     fun onVoiceDeafChanged(value: Boolean) {
         _voiceDeaf.value = value
-        prefs.voiceDeaf = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.voiceDeaf = value
+        }
     }
 
     fun onAfkMessageChanged(value: String) {
         _afkMessage.value = value
-        prefs.afkMessage = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.afkMessage = value
+        }
     }
 
     fun onAfkReplyDmsChanged(value: Boolean) {
         _afkReplyDms.value = value
-        prefs.afkReplyDms = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.afkReplyDms = value
+        }
     }
 
     fun onAfkReplyMentionsChanged(value: Boolean) {
         _afkReplyMentions.value = value
-        prefs.afkReplyMentions = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.afkReplyMentions = value
+        }
     }
 
     fun onAfkCooldownSecChanged(value: Int) {
         _afkCooldownSec.value = value
-        prefs.afkCooldownSec = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.afkCooldownSec = value
+        }
     }
 
     fun toggleService() {

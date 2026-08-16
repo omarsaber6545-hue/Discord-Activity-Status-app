@@ -68,7 +68,7 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "Gateway Connection",
-                message = "Connecting to Discord Gateway v9/v10 (${platform.title})..."
+                message = "Connecting to Discord Gateway with signature: ${platform.title} (${platform.osName})..."
             )
         )
 
@@ -95,19 +95,32 @@ class DiscordGatewayClient(
     }
 
     fun updatePresence(newPresence: DiscordPresence, newPlatform: DevicePlatform? = null) {
+        val platformChanged = newPlatform != null && newPlatform != this.platform
         this.currentPresence = newPresence
         if (newPlatform != null) {
             this.platform = newPlatform
         }
+
         if (connectionState == GatewayConnectionState.IDENTIFIED) {
-            sendPresenceUpdate(newPresence)
-            onLog(
-                AppNotification(
-                    level = NotificationLevel.SUCCESS,
-                    title = "Presence Updated",
-                    message = "Active Status: Playing ${newPresence.gameName} [${platform.title}]"
+            if (platformChanged) {
+                onLog(
+                    AppNotification(
+                        level = NotificationLevel.INFO,
+                        title = "Platform Switched",
+                        message = "Reconnecting Gateway to apply ${platform.title} hardware signature..."
+                    )
                 )
-            )
+                reconnect()
+            } else {
+                sendPresenceUpdate(newPresence)
+                onLog(
+                    AppNotification(
+                        level = NotificationLevel.SUCCESS,
+                        title = "Presence Updated",
+                        message = "Active Status: Playing ${newPresence.gameName} [${platform.title}]"
+                    )
+                )
+            }
         }
     }
 
@@ -117,7 +130,7 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "WebSocket Connected",
-                message = "Socket connection established with platform signature: ${platform.title}."
+                message = "Socket connected. Sending handshake for ${platform.title}..."
             )
         )
     }
@@ -151,7 +164,7 @@ class DiscordGatewayClient(
                             AppNotification(
                                 level = NotificationLevel.SUCCESS,
                                 title = "Logged in Successfully",
-                                message = "Active as $username with spoofing: ${platform.title} 🎮"
+                                message = "Active as $username with ${platform.title} 🎮"
                             )
                         )
                     }
@@ -228,34 +241,49 @@ class DiscordGatewayClient(
     }
 
     private fun buildActivityData(presence: DiscordPresence): ActivityData {
-        val details = if (presence.enableDetails && presence.details.isNotBlank()) presence.details else null
-        val state = if (presence.enableState && presence.state.isNotBlank()) presence.state else null
+        val details = if (presence.enableDetails && presence.details.isNotBlank()) presence.details.trim() else null
+        val state = if (presence.enableState && presence.state.isNotBlank()) presence.state.trim() else null
         val timestamps = if (presence.showTimer) ActivityTimestamps(start = presence.startTimestamp) else null
 
-        val largeImg = if (presence.enableLargeImage && presence.largeImage.isNotBlank()) presence.largeImage else null
-        val largeTxt = if (presence.enableLargeImage && presence.largeText.isNotBlank()) presence.largeText else null
-        val smallImg = if (presence.enableSmallImage && presence.smallImage.isNotBlank()) presence.smallImage else null
-        val smallTxt = if (presence.enableSmallImage && presence.smallText.isNotBlank()) presence.smallText else null
+        val rawLargeImg = if (presence.enableLargeImage && presence.largeImage.isNotBlank()) presence.largeImage.trim() else null
+        val rawLargeTxt = if (presence.enableLargeImage && presence.largeText.isNotBlank()) presence.largeText.trim() else null
+        val rawSmallImg = if (presence.enableSmallImage && presence.smallImage.isNotBlank()) presence.smallImage.trim() else null
+        val rawSmallTxt = if (presence.enableSmallImage && presence.smallText.isNotBlank()) presence.smallText.trim() else null
 
-        val assets = if (largeImg != null || smallImg != null) {
+        val assets = if (rawLargeImg != null || rawSmallImg != null) {
             ActivityAssets(
-                largeImage = largeImg,
-                largeText = largeTxt,
-                smallImage = smallImg,
-                smallText = smallTxt
+                largeImage = rawLargeImg,
+                largeText = rawLargeTxt,
+                smallImage = rawSmallImg,
+                smallText = rawSmallTxt
             )
         } else null
 
         val buttonLabels = mutableListOf<String>()
-        if (presence.enableButton1 && presence.button1Label.isNotBlank()) {
-            buttonLabels.add(presence.button1Label)
-        }
-        if (presence.enableButton2 && presence.button2Label.isNotBlank()) {
-            buttonLabels.add(presence.button2Label)
+        val buttonUrls = mutableListOf<String>()
+
+        if (presence.enableButton1 && presence.button1Label.isNotBlank() && presence.button1Url.isNotBlank()) {
+            buttonLabels.add(presence.button1Label.trim())
+            var url1 = presence.button1Url.trim()
+            if (!url1.startsWith("http://") && !url1.startsWith("https://")) {
+                url1 = "https://$url1"
+            }
+            buttonUrls.add(url1)
         }
 
+        if (presence.enableButton2 && presence.button2Label.isNotBlank() && presence.button2Url.isNotBlank()) {
+            buttonLabels.add(presence.button2Label.trim())
+            var url2 = presence.button2Url.trim()
+            if (!url2.startsWith("http://") && !url2.startsWith("https://")) {
+                url2 = "https://$url2"
+            }
+            buttonUrls.add(url2)
+        }
+
+        val metadata = if (buttonUrls.isNotEmpty()) ActivityMetadata(buttonUrls = buttonUrls) else null
+
         return ActivityData(
-            name = presence.gameName.ifBlank { platform.title },
+            name = presence.gameName.ifBlank { platform.title }.trim(),
             type = 0,
             details = details,
             state = state,
@@ -263,7 +291,8 @@ class DiscordGatewayClient(
             flags = if (platform.flags > 0) platform.flags else null,
             timestamps = timestamps,
             assets = assets,
-            buttons = buttonLabels.ifEmpty { null }
+            buttons = buttonLabels.ifEmpty { null },
+            metadata = metadata
         )
     }
 

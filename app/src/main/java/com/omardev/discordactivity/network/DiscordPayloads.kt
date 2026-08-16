@@ -34,9 +34,8 @@ data class IdentifyProperties(
     @SerializedName("system_locale") val systemLocale: String = "en-US"
 )
 
-data class ActivityButton(
-    @SerializedName("label") val label: String,
-    @SerializedName("url") val url: String
+data class ActivityMetadata(
+    @SerializedName("button_urls") val buttonUrls: List<String>? = null
 )
 
 data class ActivityAssets(
@@ -61,6 +60,7 @@ data class ActivityData(
     @SerializedName("timestamps") val timestamps: ActivityTimestamps? = null,
     @SerializedName("assets") val assets: ActivityAssets? = null,
     @SerializedName("buttons") val buttons: List<String>? = null,
+    @SerializedName("metadata") val metadata: ActivityMetadata? = null,
     @SerializedName("url") val url: String? = null
 )
 
