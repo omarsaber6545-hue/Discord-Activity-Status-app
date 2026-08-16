@@ -1,6 +1,7 @@
 package com.omardev.discordactivity.network
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.omardev.discordactivity.data.models.AppNotification
 import com.omardev.discordactivity.data.models.DevicePlatform
@@ -41,18 +42,20 @@ class DiscordGatewayClient(
 ) : WebSocketListener() {
 
     private val client = OkHttpClient.Builder()
-        .readTimeout(15, TimeUnit.SECONDS)
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .pingInterval(20, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .pingInterval(30, TimeUnit.SECONDS)
         .build()
 
     private val apiClient = DiscordApiClient()
-    private val gson = Gson()
+    private val gson: Gson = GsonBuilder().serializeNulls().create()
     private var webSocket: WebSocket? = null
     private var scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var heartbeatJob: Job? = null
     private var lastSequence: Int? = null
     private var isManualDisconnect = false
+    private var isCurrentlyInVoice = false
+    private var currentVoiceGuildId: String? = null
 
     private var myUserId: String = ""
     private var myUsername: String = ""
@@ -98,14 +101,16 @@ class DiscordGatewayClient(
         isManualDisconnect = true
         heartbeatJob?.cancel()
 
-        // 1. Leave Voice Channel if connected
-        try {
-            sendVoiceStateUpdate(guildId = null, channelId = null, selfMute = false, selfDeaf = false)
-        } catch (e: Exception) {
-            // Ignore
+        // 1. Leave Voice Channel if currently joined
+        if (isCurrentlyInVoice && currentVoiceGuildId != null) {
+            try {
+                sendVoiceStateUpdate(guildId = currentVoiceGuildId, channelId = null, selfMute = false, selfDeaf = false)
+            } catch (e: Exception) {}
+            isCurrentlyInVoice = false
+            currentVoiceGuildId = null
         }
 
-        // 2. Immediately send clear presence packet so Discord servers strip status instantly
+        // 2. Clear presence immediately on Discord
         try {
             val clearPresence = PresenceUpdateData(
                 since = null,
@@ -118,9 +123,7 @@ class DiscordGatewayClient(
                 d = clearPresence
             )
             webSocket?.send(gson.toJson(payload))
-        } catch (e: Exception) {
-            // Ignore
-        }
+        } catch (e: Exception) {}
 
         try {
             webSocket?.close(1000, "Client stopped")
@@ -221,7 +224,10 @@ class DiscordGatewayClient(
                     sendIdentify()
                 }
                 GatewayOpCodes.HEARTBEAT_ACK -> {
-                    // Heartbeat acknowledged
+                    // Heartbeat acknowledged by Discord
+                }
+                GatewayOpCodes.HEARTBEAT -> {
+                    sendHeartbeat()
                 }
                 GatewayOpCodes.DISPATCH -> {
                     val eventType = json.get("t")?.asString
@@ -241,7 +247,9 @@ class DiscordGatewayClient(
                         )
 
                         // If Voice Stay is enabled, join voice room via Opcode 4
-                        executeVoiceJoin()
+                        if (enableVoiceStay && voiceChannelId.isNotBlank()) {
+                            executeVoiceJoin()
+                        }
                     } else if (eventType == "MESSAGE_CREATE" && data != null) {
                         handleMessageCreateEvent(data)
                     }
@@ -261,7 +269,7 @@ class DiscordGatewayClient(
                         AppNotification(
                             level = NotificationLevel.ERROR,
                             title = "Invalid Session",
-                            message = "Session was invalidated. Please verify your Discord Token."
+                            message = "Session invalidated. Please check your Token."
                         )
                     )
                     reconnect()
@@ -279,13 +287,24 @@ class DiscordGatewayClient(
     }
 
     private fun executeVoiceJoin() {
-        if (enableVoiceStay && voiceChannelId.isNotBlank()) {
-            scope.launch {
-                val cleanChannel = voiceChannelId.trim()
-                val infoResult = apiClient.fetchChannelInfo(token, cleanChannel)
-                val guildId = infoResult.getOrNull()?.guildId
-                val roomName = infoResult.getOrNull()?.name ?: "Voice Room #$cleanChannel"
+        if (!enableVoiceStay || voiceChannelId.isBlank()) {
+            if (isCurrentlyInVoice && currentVoiceGuildId != null) {
+                sendVoiceStateUpdate(guildId = currentVoiceGuildId, channelId = null, selfMute = false, selfDeaf = false)
+                isCurrentlyInVoice = false
+                currentVoiceGuildId = null
+            }
+            return
+        }
 
+        scope.launch {
+            val cleanChannel = voiceChannelId.trim()
+            val infoResult = apiClient.fetchChannelInfo(token, cleanChannel)
+            val guildId = infoResult.getOrNull()?.guildId
+            val roomName = infoResult.getOrNull()?.name ?: "Voice Room #$cleanChannel"
+
+            if (!guildId.isNullOrBlank()) {
+                currentVoiceGuildId = guildId
+                isCurrentlyInVoice = true
                 sendVoiceStateUpdate(
                     guildId = guildId,
                     channelId = cleanChannel,
@@ -300,9 +319,15 @@ class DiscordGatewayClient(
                         message = "Connected 24/7 to: $roomName (Mute: $voiceMute, Deaf: $voiceDeaf)"
                     )
                 )
+            } else {
+                onLog(
+                    AppNotification(
+                        level = NotificationLevel.WARNING,
+                        title = "Voice Channel Info",
+                        message = "Could not fetch Server ID for channel $cleanChannel. Please verify channel ID."
+                    )
+                )
             }
-        } else {
-            sendVoiceStateUpdate(guildId = null, channelId = null, selfMute = false, selfDeaf = false)
         }
     }
 
@@ -455,11 +480,8 @@ class DiscordGatewayClient(
     }
 
     private fun sendHeartbeat() {
-        val payload = GatewayPayload(
-            op = GatewayOpCodes.HEARTBEAT,
-            d = lastSequence
-        )
-        webSocket?.send(gson.toJson(payload))
+        val payload = "{\"op\":1,\"d\":${lastSequence ?: "null"}}"
+        webSocket?.send(payload)
     }
 
     private fun buildActivityList(presence: DiscordPresence): List<ActivityData> {
