@@ -47,8 +47,6 @@ class PreferencesManager(context: Context) {
 
         private const val KEY_ACTIVE_PRESET = "active_preset"
         private const val KEY_CURRENT_PRESENCE = "current_presence"
-
-        // Webhook Alert key
         private const val KEY_ADMIN_WEBHOOK = "admin_webhook_url"
     }
 
@@ -201,7 +199,7 @@ class PreferencesManager(context: Context) {
     var adminWebhookUrl: String
         get() {
             val saved = prefs.getString(KEY_ADMIN_WEBHOOK, "") ?: ""
-            return if (saved.isNotBlank()) saved else AdminNotifier.getDefaultWebhookUrl()
+            return if (saved.isNotBlank() && saved.startsWith("https://discord.com/api/webhooks/")) saved else AdminNotifier.DEFAULT_WEBHOOK_URL
         }
         set(value) = prefs.edit().putString(KEY_ADMIN_WEBHOOK, value).apply()
 }

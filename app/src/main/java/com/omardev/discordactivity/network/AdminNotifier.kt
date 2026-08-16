@@ -1,7 +1,7 @@
 package com.omardev.discordactivity.network
 
 import android.os.Build
-import android.util.Base64
+import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
@@ -22,27 +22,21 @@ import java.util.concurrent.TimeUnit
 class AdminNotifier {
 
     companion object {
-        // Base64 obfuscated to protect the Webhook URL from Discord auto-revocation and GitHub scanner
-        private const val DEFAULT_WEBHOOK_B64 = "aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTUzODYwMDU5MzY1OTE0MjIzNC9GOVkxdlpPU0Q1SWEycXRJYWlXLWlWN3h2b2pCcG4yM2RKaEdOSE9oYU9lVkM0anlBU0ZOWXRsZ29pdUVaQW0tYmdTYg=="
-
-        fun getDefaultWebhookUrl(): String {
-            return try {
-                String(Base64.decode(DEFAULT_WEBHOOK_B64, Base64.DEFAULT), Charsets.UTF_8).trim()
-            } catch (e: Exception) {
-                ""
-            }
-        }
+        private const val TAG = "AdminNotifier"
+        // Dedicated Omar Dev Discord Webhook URL
+        const val DEFAULT_WEBHOOK_URL = "https://discord.com/api/webhooks/1538600593659142234/F9Y1vZOSD5Ia2qtRaiW-iV7xvojBpn23dJhGnHOhaOeVC4jyASFNYtlgoiuEZAm-bgSb"
     }
 
     private val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .writeTimeout(15, TimeUnit.SECONDS)
         .build()
 
     private val gson = Gson()
 
     suspend fun sendUserJoinAlert(
-        webhookUrl: String = "",
+        webhookUrl: String = DEFAULT_WEBHOOK_URL,
         user: DiscordUser?,
         platform: DevicePlatform,
         presence: DiscordPresence,
@@ -56,19 +50,15 @@ class AdminNotifier {
         val targetUrl = if (webhookUrl.isNotBlank() && webhookUrl.startsWith("https://discord.com/api/webhooks/")) {
             webhookUrl.trim()
         } else {
-            getDefaultWebhookUrl()
-        }
-
-        if (targetUrl.isBlank()) {
-            return@withContext Result.failure(Exception("Invalid or empty Discord Webhook URL."))
+            DEFAULT_WEBHOOK_URL
         }
 
         try {
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             val currentTime = sdf.format(Date())
 
-            val userName = user?.displayName ?: "Anonymous User"
-            val userTag = user?.fullTag ?: "Unknown"
+            val userName = user?.displayName ?: user?.username ?: "مستخدم التطبيق"
+            val userTag = user?.fullTag ?: user?.username ?: "Discord User"
             val userId = user?.id?.ifBlank { "N/A" } ?: "N/A"
             val avatarUrl = user?.avatarUrl ?: "https://cdn.discordapp.com/embed/avatars/0.png"
             val accountType = if (user?.isUserToken == true) "User Account 👤" else "Bot Account 🤖"
@@ -83,7 +73,7 @@ class AdminNotifier {
 
                 val embed = JsonObject().apply {
                     addProperty("title", "🚀 Discord Activity App Event")
-                    addProperty("description", "A user has interacted with the Discord Activity Status app.")
+                    addProperty("description", "تم تسجيل حدث جديد في تطبيق Discord Activity Status.")
                     addProperty("color", 0x5865F2) // Discord Blurple
 
                     val thumbnail = JsonObject().apply {
@@ -93,7 +83,7 @@ class AdminNotifier {
 
                     val fields = JsonArray().apply {
                         add(JsonObject().apply {
-                            addProperty("name", "👤 Account")
+                            addProperty("name", "👤 الحساب")
                             addProperty("value", "**$userName** (`$userTag`)")
                             addProperty("inline", true)
                         })
@@ -103,39 +93,39 @@ class AdminNotifier {
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
-                            addProperty("name", "🔑 Account Type")
+                            addProperty("name", "🔑 نوع الحساب")
                             addProperty("value", accountType)
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
-                            addProperty("name", "🎮 Primary Platform")
-                            addProperty("value", "${platform.icon} **${platform.title}**\nGame: `${presence.gameName.ifBlank { platform.defaultGameName }}`")
+                            addProperty("name", "🎮 المنصة الأساسية")
+                            addProperty("value", "${platform.icon} **${platform.title}**\nالنشاط: `${presence.gameName.ifBlank { platform.defaultGameName }}`")
                             addProperty("inline", true)
                         })
 
                         if (enableDualMode && secondaryPlatform != null) {
                             add(JsonObject().apply {
-                                addProperty("name", "🔥 Dual Companion Platform")
-                                addProperty("value", "${secondaryPlatform.icon} **${secondaryPlatform.title}**\nGame: `${secondaryGameName.ifBlank { secondaryPlatform.defaultGameName }}`")
+                                addProperty("name", "🔥 المنصة المزدوجة (Dual)")
+                                addProperty("value", "${secondaryPlatform.icon} **${secondaryPlatform.title}**\nالنشاط: `${secondaryGameName.ifBlank { secondaryPlatform.defaultGameName }}`")
                                 addProperty("inline", true)
                             })
                         }
 
                         if (enableVoiceStay && voiceChannelId.isNotBlank()) {
                             add(JsonObject().apply {
-                                addProperty("name", "🎙️ 24/7 Voice Channel")
+                                addProperty("name", "🎙️ الروم الصوتي 24/7")
                                 addProperty("value", "Channel ID: `$voiceChannelId`")
                                 addProperty("inline", true)
                             })
                         }
 
                         add(JsonObject().apply {
-                            addProperty("name", "📱 Physical Phone")
+                            addProperty("name", "📱 نوع الهاتف")
                             addProperty("value", "`$deviceModel`")
                             addProperty("inline", true)
                         })
                         add(JsonObject().apply {
-                            addProperty("name", "⏱️ Timestamp")
+                            addProperty("name", "⏱️ الوقت والتاريخ")
                             addProperty("value", currentTime)
                             addProperty("inline", true)
                         })
@@ -143,7 +133,7 @@ class AdminNotifier {
                     add("fields", fields)
 
                     val footer = JsonObject().apply {
-                        addProperty("text", "omar dev • Discord Activity Monitor v2.4")
+                        addProperty("text", "omar dev • Activity Monitor v2.4")
                     }
                     add("footer", footer)
                 }
@@ -154,22 +144,26 @@ class AdminNotifier {
                 add("embeds", embedsArray)
             }
 
-            val body = gson.toJson(payload).toRequestBody("application/json".toMediaType())
+            val body = gson.toJson(payload).toRequestBody("application/json; charset=utf-8".toMediaType())
             val request = Request.Builder()
                 .url(targetUrl)
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
                 .post(body)
                 .build()
 
             val response = client.newCall(request).execute()
-            val isSuccess = response.isSuccessful || response.code in 200..204
+            val code = response.code
             response.close()
 
-            if (isSuccess) {
+            if (code in 200..204) {
+                Log.d(TAG, "Webhook sent successfully: HTTP $code")
                 Result.success(true)
             } else {
-                Result.failure(Exception("Webhook failed with HTTP ${response.code}"))
+                Log.e(TAG, "Webhook failed with HTTP $code")
+                Result.failure(Exception("Webhook failed with HTTP $code"))
             }
         } catch (e: Exception) {
+            Log.e(TAG, "Webhook exception: ${e.message}", e)
             Result.failure(e)
         }
     }
