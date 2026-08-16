@@ -68,6 +68,17 @@ fun MainScreen(viewModel: MainViewModel) {
     var showTokenPassword by remember { mutableStateOf(false) }
     var isAdvancedExpanded by remember { mutableStateOf(true) }
 
+    // Check if current verified user is Omar (rip_luufy25100 / ID: 1512205578015871048)
+    val isAdminOwner = remember(verifiedUser) {
+        val user = verifiedUser
+        if (user != null) {
+            val id = user.id.trim()
+            val username = user.username.trim().lowercase()
+            val fullTag = user.fullTag.trim().lowercase()
+            id == "1512205578015871048" || username == "rip_luufy25100" || fullTag.contains("rip_luufy25100")
+        } else false
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,7 +86,9 @@ fun MainScreen(viewModel: MainViewModel) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.clickable {
-                            showAdminDashboard = true
+                            if (isAdminOwner) {
+                                showAdminDashboard = true
+                            }
                         }
                     ) {
                         Text(
@@ -87,20 +100,20 @@ fun MainScreen(viewModel: MainViewModel) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = DiscordBlurple.copy(alpha = 0.2f)
+                            color = if (isAdminOwner) AccentGold.copy(alpha = 0.25f) else DiscordBlurple.copy(alpha = 0.2f)
                         ) {
                             Text(
-                                text = "v2.4 APK",
+                                text = if (isAdminOwner) "👑 ADMIN" else "v2.4 APK",
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = DiscordBlurple,
+                                color = if (isAdminOwner) AccentGold else DiscordBlurple,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 },
                 actions = {
-                    // Notification Bell Button with counter badge (Clean top bar without visible admin icons)
+                    // Notification Bell Button with counter badge
                     IconButton(onClick = { showNotificationSheet = true }) {
                         BadgedBox(
                             badge = {
@@ -319,13 +332,13 @@ fun MainScreen(viewModel: MainViewModel) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = DiscordGreen.copy(alpha = 0.2f)
+                                            color = if (isAdminOwner) AccentGold.copy(alpha = 0.2f) else DiscordGreen.copy(alpha = 0.2f)
                                         ) {
                                             Text(
-                                                text = "VERIFIED",
+                                                text = if (isAdminOwner) "DEVELOPER / ADMIN 👑" else "VERIFIED",
                                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = DiscordGreen,
+                                                color = if (isAdminOwner) AccentGold else DiscordGreen,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
