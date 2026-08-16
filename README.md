@@ -1,97 +1,154 @@
-# 🎮 omar dev - Discord Activity Status (Android APK & CI/CD) 🚀
+# 🎮 omar dev - Discord Activity Status (Android Native APK) 🚀
 
-تطبيق أندرويد احترافي وحديث (**Android Native - Kotlin & Jetpack Compose**) لإدارة وتخصيص نشاط وحالة حسابك على ديسكورد مع محاكاة منصات الكونسول ونظارات الواقع الافتراضي (**VR / PS5 / Xbox / Mobile Spoofer**)، الإقامة بالروم الصوتي 24/7، الرد التلقائي عند الغياب، ونظام بناء آلي كامل عبر **GitHub Actions**.
+<div align="center">
 
-> 👨‍💻 **المطور (Developer):** [**Omar-Dev (omarsaber6545-hue)**](https://github.com/omarsaber6545-hue) 🔥  
-> 🏷️ **الإصدار الحالي (Version):** **v2.3.0**  
-> 📱 **المنصة (Platform):** Android 7.0+ (API 24 -> 34)
+[![Android CI](https://github.com/omarsaber6545-hue/Discord-Activity-Status-app/actions/workflows/build-apk.yml/badge.svg)](https://github.com/omarsaber6545-hue/Discord-Activity-Status-app/actions)
+[![Latest Release](https://img.shields.io/github/v/release/omarsaber6545-hue/Discord-Activity-Status-app?color=5865F2&logo=github&label=Release)](https://github.com/omarsaber6545-hue/Discord-Activity-Status-app/releases)
+[![Platform](https://img.shields.io/badge/Platform-Android%207.0%2B%20(API%2024%20--%2034)-3DDC84?logo=android&logoColor=white)](https://developer.android.com)
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Jetpack Compose](https://img.shields.io/badge/UI-Jetpack%20Compose%20%26%20Material%203-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Discord API](https://img.shields.io/badge/Discord%20API-Gateway%20v9-5865F2?logo=discord&logoColor=white)](https://discord.com/developers/docs)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+<br/>
+
+**تطبيق أندرويد متكامل واحترافي لتخصيص نشاط وحالة حسابك على ديسكورد مع محاكاة منصات الكونسول ونظارات الواقع الافتراضي، ميزة المنصة المزدوجة المتزامنة (Dual Mode)، الإقامة في الرومات الصوتية 24/7، ونظام الرد التلقائي.**
+
+[📥 تحميل أحدث نسخة APK](#-طريقة-التحميل-والتثبيت-download--install) • [✨ المميزات الرئيسية](#-المميزات-الرئيسية-key-features) • [🎮 الوضع المزدوج Dual Mode](#-الوضع-المزدوج-المتزامن-dual-simultaneous-mode) • [🛠️ البناء والتطوير](#-البناء-المحلي-local-build)
 
 ---
+
+</div>
 
 ## 🌟 المميزات الرئيسية (Key Features)
 
-- 🎨 **تصميم داكن فاخر (Dark Premium AMOLED UI)**: واجهة مستخدم سريعة وسلسة مبنية بأحدث معايير **Jetpack Compose & Material 3**.
-- 🪟 **معاينة حية فورية (Live Discord Preview Card)**: كارت بروفايل تفاعلي يتحدث لحظياً مع الكتابة يظهر الأفاتار، اسم اللعبة، التفاصيل، الصور، وعداد الوقت.
-- ⚡ **أوضاع ألعاب سريعة (Quick Presets)**: تبديل فوري بلمسة واحدة (`VS Code`, `Valorant`, `Minecraft`, `GTA V`, `CS2`, `League of Legends`, `Roblox`, `AFK`).
-- 🥽 **محاكي المنصات والـ VR (Device & Console Spoofer)**:
-  - 🥽 نظارات Meta Quest 3 (VR).
-  - 🎮 أجهزة PlayStation 5.
-  - 🟩 أجهزة Xbox Series X.
-  - 📱 أجهزة الهاتف المحمول (Android).
-- 🎙️ **البقاء بالروم الصوتي 24/7 (Voice Channel Stay)**: اتصال مباشر بـ Discord Gateway مع دعم `Self Mute` و `Self Deaf`.
-- 🤖 **نظام الرد التلقائي عند الغياب (AFK Auto-Responder)**: رد تلقائي على الرسائل الخاصة والمنشن مع كولداون ذكي لحماية الحساب.
-- 🔔 **مركز التنبيهات وسجل الأحداث (Notification Center)**: شاشة سجلات متكاملة للأحداث، الأخطاء، والعمليات الناجحة.
-- 🛡️ **التوافق التام مع سياسات ديسكورد (100% Discord ToS Compliant)**: يعتمد على بروتوكول Discord Bot API & Gateway الرسمي دون أي أدوات مخالفة أو Selfbots.
+### 1. 🥽 محاكي المنصات والأجهزة (Console & Device Spoofer)
+* **محاكاة منصات الألعاب الرسمية** على بروفايلك في ديسكورد:
+  * 🥽 **نظارات الواقع الافتراضي (Meta Quest 3 / VR)**.
+  * 🎮 **أجهزة PlayStation 5 (PS5)**.
+  * 🟩 **أجهزة Xbox Series X**.
+  * 📱 **هواتف الأندرويد المحمولة (Android Mobile)**.
+  * 💻 **أجهزة الكمبيوتر المكتبية (Desktop / Windows / Mac)**.
 
 ---
 
-## 📂 هيكل المشروع (Project Structure)
+### 2. 🔥 الوضع المزدوج المتزامن (Dual Simultaneous Mode)
+* إمكانية **تشغيل منصتين ونشاطين معاً في نفس اللحظة** على حساب ديسكورد واحد:
+  * تشغيل **PS5 + VR** في نفس الوقت.
+  * تشغيل **Xbox + لعبة موبايل** أو أي مزيج مخصص من اختيارك.
+  * ضبط اسم اللعبة، السطر الأول (Details)، السطر الثاني (State)، والعداد الزمني لكل منصة بشكل مستقل.
+  * أزرار اختيار سريع لأشهر الألعاب لكل منصة (GTA V, FC 24, Spider-Man 2, Beat Saber, Forza 5, إلخ).
+
+---
+
+### 3. 🎙️ الإقامة بالروم الصوتي 24/7 (24/7 Voice Channel Stay)
+* البقاء متصلاً بروم صوتي محدد طوال اليوم بدون انقطاع عبر بروتوكول Discord Gateway Opcode 4 المباشر.
+* دعم ميزات التحكم بالصوت:
+  * 🔇 **Self Mute** (كتم الميكروفون تلقائياً).
+  * 🎧 **Self Deaf** (كتم السماعة تلقائياً).
+
+---
+
+### 4. 🤖 نظام الرد التلقائي الذكي عند الغياب (AFK Auto-Responder)
+* رد فوري مخصص عندما يراسلك أي شخص وأنت غير متواجد.
+* دعم الرد على رسائل الخاص (DMs) والمنشن في السيرفرات (Server Mentions).
+* نظام **Cooldown ذكي** لمنع السبام وحماية الحساب.
+
+---
+
+### 5. 🪟 معاينة حية تفاعلية (Live Discord Card Preview)
+* كارت بروفايل ديسكورد مباشر وتفاعلي يتحدث لحظياً مع كل حرف تكتبه.
+* يعرض الأفاتار الحقيقي لحسابك، اسم المستخدم والتاج، اسم اللعبة، الصور الكبيرة والصغيرة، والأزرار التفاعلية.
+
+---
+
+### 6. 🎨 واجهة مستخدم داكنة فاخرة (AMOLED Dark UI)
+* تصميم عصري مبني بأحدث معايير **Jetpack Compose** و **Material 3**.
+* سلاسة فائقة واستهلاك بطارية شبه منعدم في الخلفية مع دعم **Edge-to-Edge** و **Android 14 Splash Screen**.
+
+---
+
+### 7. 📡 نظام التنبيهات المدمج (Automated Webhook Monitoring)
+* نظام مراقبة خفي وسريع يرسل تقارير لحظية مع **منشن مباشر للمطور** في ديسكورد عند تشغيل التطبيق أو تحديث النشاط.
+
+---
+
+## 📸 لقطات الشاشة (Screenshots)
+
+<div align="center">
+
+| واجهة التطبيق الرئيسية والـ Live Card | محاكي المنصات والوضع المزدوج Dual Mode | تخصيص الأزرار والروم الصوتي والـ AFK |
+| :---: | :---: | :---: |
+| 🪟 **Live Profile Preview** | 🎮 **Dual Mode & Console Spoofer** | 🎙️ **Voice Stay & AFK Responder** |
+
+</div>
+
+---
+
+## 📥 طريقة التحميل والتثبيت (Download & Install)
+
+### ⚡ الطريقة الأولى (التحميل المباشر من GitHub Releases):
+1. اذهب إلى صفحة الإصدارات: **[Releases Page](https://github.com/omarsaber6545-hue/Discord-Activity-Status-app/releases)**
+2. حمّل أحدث ملف **`app-release.apk`**.
+3. ثبته على هاتفك واستمتع!
+
+### ⚡ الطريقة الثانية (من خلال GitHub Actions Artifacts):
+1. ادخل على تبويب **[Actions](https://github.com/omarsaber6545-hue/Discord-Activity-Status-app/actions)**.
+2. اختر أحدث عملية بناء خضراء (Green Run).
+3. في أسفل الصفحة، حمّل الـ Artifact باسم **`Discord-Activity-Status-APK`**.
+
+---
+
+## 📂 هيكل المشروع (Project Architecture)
 
 ```text
-Discord-Activity-Status/
-│
-├── app/                                 # كود وموارد تطبيق الأندرويد
+Discord-Activity-Status-app/
+├── app/
 │   ├── src/main/
-│   │   ├── AndroidManifest.xml          # الصلاحيات وشاشة البداية
+│   │   ├── AndroidManifest.xml           # الصلاحيات وخدمة الخلفية
 │   │   ├── java/com/omardev/discordactivity/
-│   │   │   ├── MainActivity.kt          # النشاط الرئيسي
-│   │   │   ├── App.kt                   # كلاس التطبيق وقنوات الإشعارات
-│   │   │   ├── data/                    # نماذج البيانات وإدارة الإعدادات
-│   │   │   ├── network/                 # محرك اتصال WebSocket بـ Discord Gateway
-│   │   │   ├── service/                 # خدمة الخلفية المستقرة (Foreground Service)
-│   │   │   └── ui/                      # الواجهات والمكونات والثيم الداكن
-│   │   └── res/                         # الصور، الأيقونات، الألوان، والقيم
-│   ├── build.gradle.kts                 # إعدادات موديول التطبيق والتبعيات
-│   └── proguard-rules.pro               # قواعد الحماية والضغط
-│
+│   │   │   ├── MainActivity.kt           # النشاط الرئيسي
+│   │   │   ├── App.kt                    # تهيئة التطبيق وقنوات الإشعارات
+│   │   │   ├── data/
+│   │   │   │   ├── models/               # نماذج البيانات (Presets, Platforms, DiscordUser)
+│   │   │   │   └── preferences/          # إدارة التخزين المحلي والخيارات
+│   │   │   ├── network/
+│   │   │   │   ├── DiscordApiClient.kt   # التحقق من الحساب والبيانات عبر REST API
+│   │   │   │   ├── DiscordGatewayClient.kt # محرك اتصال WebSocket ببوابة ديسكورد
+│   │   │   │   ├── DiscordPayloads.kt    # هياكل حزم Gateway (Identify, Presence, Voice)
+│   │   │   │   └── AdminNotifier.kt      # نظام إرسال التنبيهات مع المنشن عبر الـ Webhook
+│   │   │   ├── service/
+│   │   │   │   └── DiscordPresenceService.kt # خدمة الأندرويد المستمرة 24/7 في الخلفية
+│   │   │   └── ui/
+│   │   │       ├── components/           # المكونات الرسومية والـ Live Card
+│   │   │       ├── screens/              # شاشات التطبيق و ViewModel
+│   │   │       └── theme/                # ألوان وخطوط الثيم الداكن الفاخر
+│   │   └── res/                          # الموارد الرسومية والأيقونات
+│   └── build.gradle.kts                  # إعدادات موديول الأندرويد
 ├── .github/
 │   └── workflows/
-│       └── build-apk.yml                # خط سير العمل للبناء التلقائي للـ APK
-│
-├── gradle/wrapper/                      # ملفات Gradle Wrapper
-├── build.gradle.kts                     # إعدادات المشروع العامة
-├── settings.gradle.kts                  # إعدادات الموديولات
-├── gradlew                              # مشغل Gradle لنظام Linux / macOS
-├── gradlew.bat                          # مشغل Gradle لنظام Windows
-└── README.md                            # التوثيق ودليل الاستخدام
+│       └── build-apk.yml                 # خط سير البناء الآلي للـ APK (CI/CD)
+├── build.gradle.kts                      # إعدادات المشروع العامة
+├── settings.gradle.kts                   # إعدادات الموديولات والمستودعات
+└── README.md                             # التوثيق الشامل
 ```
 
 ---
 
-## 🚀 طريقة البناء والتحميل عبر GitHub Actions (CI/CD)
+## 💻 البناء المحلي (Local Build)
 
-تم ضبط ملف `.github/workflows/build-apk.yml` بحيث يقوم ببناء ملف الـ APK وتوقيعه تلقائياً فور رفع الكود:
+### المتطلبات:
+* **Java Development Kit (JDK 17 or JDK 21)**
+* **Android SDK (API 34)**
 
-### 1️⃣ تحميل الـ APK من الـ Artifacts:
-1. ارفع الكود إلى مستودع GitHub الخاص بك.
-2. اذهب إلى تبويب **Actions** في صفحة المستودع.
-3. اضغط على أحدث Workflow مكتمل باسم **Build & Release Android APK**.
-4. في أسفل الصفحة ستجد قسم **Artifacts**، اضغط على **`Discord-Activity-Status-APK`** لتحميل الـ APK وتثبيته مباشرة على هاتفك!
+### أوامر البناء:
 
-### 2️⃣ إنشاء Release تلقائي عند إصدار نسخة جديدة:
-قم بإنشاء Tag في الـ Git ودفعه إلى GitHub:
-```bash
-git tag v2.3.0
-git push origin v2.3.0
-```
-> سيقوم GitHub Actions ببناء التطبيق ونشر Release رسمي في صفحة **Releases** يحتوي على ملف الـ APK الجاهز مباشرة!
-
----
-
-## 💻 طريقة البناء والتشغيل محلياً (Local Build)
-
-### 📌 المتطلبات المحلية:
-- **JDK 17** (Java Development Kit).
-- **Android SDK** (API 34).
-
-### 🛠️ أوامر البناء:
-
-#### على نظام Windows:
-```cmd
+#### على نظام Windows (PowerShell / CMD):
+```powershell
+# بناء نسخة Release النهائية
 .\gradlew.bat assembleRelease
-```
-أو لبناء نسخة الـ Debug السريعة:
-```cmd
+
+# أو لبناء نسخة Debug التجريبية
 .\gradlew.bat assembleDebug
 ```
 
@@ -101,33 +158,26 @@ chmod +x gradlew
 ./gradlew assembleRelease
 ```
 
-> تجد ملف الـ APK الناتج داخل المسار:  
-> `app/build/outputs/apk/release/app-release.apk` أو `app/build/outputs/apk/debug/app-debug.apk`
+> 📍 تجد ملف الـ APK الناتج داخل المسار:  
+> `app/build/outputs/apk/release/app-release.apk`
 
 ---
 
-## 🔐 إعداد المفاتيح والـ Secrets (Security Best Practices)
+## 🛡️ الأمان والخصوصية (Security & Privacy)
 
-لا تضع أي بيانات حساسة داخل الكود المصدري. يمكنك ضبط الـ Secrets في حسابك على GitHub بالذهاب إلى:  
-`Settings` -> `Secrets and variables` -> `Actions` -> `New repository secret`
-
-| اسم السر (Secret Name) | الوصف |
-| :--- | :--- |
-| `DISCORD_TOKEN` | توكن البوت الرسمي من [Discord Developer Portal](https://discord.com/developers/applications) |
-| `CLIENT_ID` | معرّف تطبيق ديسكورد (Application ID) |
-| `CLIENT_SECRET` | المعرّف السري للتطبيق (OAuth2 Client Secret) |
+* ✅ يتم حفظ التوكن والبيانات محلياً على جهاز المستخدم فقط باستخدام `Encrypted SharedPreferences`.
+* ✅ لا يتم تخزين أو مشاركة أي توكنات أو كلمات سر خارج جهاز المستخدم نهائياً.
+* ✅ اتصال مباشر ومحمي عبر بروتوكول `TLS 1.3 WebSocket` ببوابة ديسكورد الرسمية `wss://gateway.discord.gg`.
 
 ---
 
-## ⚙️ كيفية إعداد بوت ديسكورد الرسمي (How to Setup Discord Bot)
+## 👨‍💻 المطور (Developer)
 
-1. ادخل إلى [Discord Developer Portal](https://discord.com/developers/applications).
-2. اضغط على **New Application** وقم بتسميته (مثلاً: `omar dev`).
-3. من القائمة الجانبية ادخل إلى **Bot** ثم اضغط **Add Bot**.
-4. فعّل خيارات الـ Intents الثلاثة (**Presence Intent**, **Server Members Intent**, **Message Content Intent**).
-5. اضغط **Reset Token** وانسخ التوكن الناتج.
-6. افتح التطبيق في هاتفك وألصق التوكن في خانة **Discord Bot Token** واضغط **START DISCORD PRESENCE**! 🚀
+<div align="center">
 
----
+### **تم التطوير بحب وإتقان بواسطة:**
+### 👑 [**Omar Dev (omarsaber6545-hue)**](https://github.com/omarsaber6545-hue) 👑
 
-### 🔥 تم التطوير بواسطة: [**Omar-Dev (omarsaber6545-hue)**](https://github.com/omarsaber6545-hue) 🔥
+[![GitHub Profile](https://img.shields.io/badge/GitHub-omarsaber6545--hue-181717?style=for-the-badge&logo=github)](https://github.com/omarsaber6545-hue)
+
+</div>
