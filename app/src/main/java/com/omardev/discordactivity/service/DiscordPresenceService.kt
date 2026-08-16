@@ -21,7 +21,6 @@ import com.omardev.discordactivity.network.GatewayConnectionState
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
 
 class DiscordPresenceService : Service() {
 
@@ -87,13 +86,15 @@ class DiscordPresenceService : Service() {
 
     private fun connectGateway() {
         val prefs = (application as App).preferencesManager
-        val token = prefs.botToken
+        val token = prefs.token
+        val isUserToken = prefs.isUserToken
         val platform = prefs.devicePlatform
         val presence = prefs.presence
 
         gatewayClient?.disconnect()
         gatewayClient = DiscordGatewayClient(
             token = token,
+            isUserToken = isUserToken,
             platform = platform,
             currentPresence = presence,
             voiceChannelId = prefs.voiceChannelId,

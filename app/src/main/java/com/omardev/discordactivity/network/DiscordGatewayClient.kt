@@ -20,6 +20,7 @@ enum class GatewayConnectionState {
 
 class DiscordGatewayClient(
     private val token: String,
+    private val isUserToken: Boolean = false,
     private val platform: DevicePlatform,
     private var currentPresence: DiscordPresence,
     private val voiceChannelId: String = "",
@@ -49,11 +50,12 @@ class DiscordGatewayClient(
         }
 
     fun connect() {
-        if (token.isBlank()) {
+        val cleanToken = token.trim()
+        if (cleanToken.isBlank()) {
             val error = AppNotification(
                 level = NotificationLevel.ERROR,
                 title = "Authentication Error",
-                message = "Discord Bot Token is empty. Please enter your bot token in Settings."
+                message = "Discord Token is empty. Please enter your Account/Bot token and verify it."
             )
             onLog(error)
             connectionState = GatewayConnectionState.ERROR
@@ -112,7 +114,7 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "WebSocket Connected",
-                message = "Socket connection established. Waiting for Hello (OP 10)..."
+                message = "Socket connection established. Initializing session..."
             )
         )
     }
@@ -134,19 +136,19 @@ class DiscordGatewayClient(
                     sendIdentify()
                 }
                 GatewayOpCodes.HEARTBEAT_ACK -> {
-                    // Heartbeat acknowledged by Discord
+                    // Heartbeat acknowledged
                 }
                 GatewayOpCodes.DISPATCH -> {
                     val eventType = json.get("t")?.asString
                     if (eventType == "READY") {
                         val botUser = json.getAsJsonObject("d").getAsJsonObject("user")
-                        val username = botUser.get("username")?.asString ?: "Discord Bot"
+                        val username = botUser.get("username")?.asString ?: "Discord Account"
                         connectionState = GatewayConnectionState.IDENTIFIED
                         onLog(
                             AppNotification(
                                 level = NotificationLevel.SUCCESS,
-                                title = "Identified Successfully",
-                                message = "Logged in as $username with spoofing: ${platform.title} 🎮"
+                                title = "Logged in Successfully",
+                                message = "Active as $username with spoofing: ${platform.title} 🎮"
                             )
                         )
                     }
@@ -166,7 +168,7 @@ class DiscordGatewayClient(
                         AppNotification(
                             level = NotificationLevel.ERROR,
                             title = "Invalid Session",
-                            message = "Session was invalidated. Please verify your Bot Token and Intents."
+                            message = "Session was invalidated. Please verify your Account/Bot Token."
                         )
                     )
                     reconnect()
@@ -223,7 +225,12 @@ class DiscordGatewayClient(
     }
 
     private fun sendIdentify() {
-        val cleanToken = if (token.startsWith("Bot ")) token else "Bot $token"
+        val cleanToken = token.trim()
+        val authHeaderToken = if (isUserToken) {
+            cleanToken
+        } else {
+            if (cleanToken.startsWith("Bot ")) cleanToken else "Bot $cleanToken"
+        }
 
         val activity = ActivityData(
             name = currentPresence.gameName,
@@ -244,7 +251,7 @@ class DiscordGatewayClient(
         )
 
         val identifyData = IdentifyData(
-            token = cleanToken,
+            token = authHeaderToken,
             properties = IdentifyProperties(
                 os = platform.osName,
                 browser = platform.browserName,

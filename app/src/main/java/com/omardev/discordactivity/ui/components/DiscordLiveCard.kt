@@ -1,6 +1,5 @@
 package com.omardev.discordactivity.ui.components
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -9,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.OpenInNew
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.omardev.discordactivity.data.models.DevicePlatform
 import com.omardev.discordactivity.data.models.DiscordPresence
+import com.omardev.discordactivity.data.models.DiscordUser
 import com.omardev.discordactivity.network.GatewayConnectionState
 import com.omardev.discordactivity.ui.theme.*
 import kotlinx.coroutines.delay
@@ -33,6 +34,7 @@ fun DiscordLiveCard(
     presence: DiscordPresence,
     platform: DevicePlatform,
     connectionState: GatewayConnectionState,
+    verifiedUser: DiscordUser? = null,
     modifier: Modifier = Modifier
 ) {
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
@@ -64,6 +66,8 @@ fun DiscordLiveCard(
         GatewayConnectionState.DISCONNECTED -> DarkTextMuted
     }
 
+    val displayName = verifiedUser?.displayName ?: "omar dev"
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -89,21 +93,33 @@ fun DiscordLiveCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(40.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(DiscordBlurple.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SportsEsports,
-                                contentDescription = null,
-                                tint = DiscordBlurple,
-                                modifier = Modifier.size(24.dp)
+                    Box(modifier = Modifier.size(42.dp)) {
+                        if (verifiedUser?.avatar != null) {
+                            AsyncImage(
+                                model = verifiedUser.avatarUrl,
+                                contentDescription = "Avatar",
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(DiscordBlurple.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SportsEsports,
+                                    contentDescription = null,
+                                    tint = DiscordBlurple,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
                         }
+
                         // Live Status Dot
                         Box(
                             modifier = Modifier
@@ -118,12 +134,30 @@ fun DiscordLiveCard(
                     Spacer(modifier = Modifier.width(10.dp))
 
                     Column {
-                        Text(
-                            text = "omar dev",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = DarkTextPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = displayName,
+                                style = MaterialTheme.typography.titleMedium,
+                                color = DarkTextPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (verifiedUser != null) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = DiscordBlurple.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = if (verifiedUser.isUserToken) "USER" else "BOT",
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = DiscordBlurple,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
                         Text(
                             text = when (connectionState) {
                                 GatewayConnectionState.IDENTIFIED -> "Active Rich Presence"

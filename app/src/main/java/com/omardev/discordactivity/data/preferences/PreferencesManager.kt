@@ -6,6 +6,7 @@ import com.google.gson.Gson
 import com.omardev.discordactivity.data.models.ActivityPreset
 import com.omardev.discordactivity.data.models.DevicePlatform
 import com.omardev.discordactivity.data.models.DiscordPresence
+import com.omardev.discordactivity.data.models.DiscordUser
 
 class PreferencesManager(context: Context) {
 
@@ -13,7 +14,9 @@ class PreferencesManager(context: Context) {
     private val gson = Gson()
 
     companion object {
-        private const val KEY_BOT_TOKEN = "bot_token"
+        private const val KEY_TOKEN = "account_token"
+        private const val KEY_IS_USER_TOKEN = "is_user_token"
+        private const val KEY_VERIFIED_USER = "verified_user"
         private const val KEY_CLIENT_ID = "client_id"
         private const val KEY_DEVICE_PLATFORM = "device_platform"
         private const val KEY_VOICE_CHANNEL_ID = "voice_channel_id"
@@ -27,9 +30,27 @@ class PreferencesManager(context: Context) {
         private const val KEY_CURRENT_PRESENCE = "current_presence"
     }
 
-    var botToken: String
-        get() = prefs.getString(KEY_BOT_TOKEN, "") ?: ""
-        set(value) = prefs.edit().putString(KEY_BOT_TOKEN, value).apply()
+    var token: String
+        get() = prefs.getString(KEY_TOKEN, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_TOKEN, value).apply()
+
+    var isUserToken: Boolean
+        get() = prefs.getBoolean(KEY_IS_USER_TOKEN, false)
+        set(value) = prefs.edit().putBoolean(KEY_IS_USER_TOKEN, value).apply()
+
+    var verifiedUser: DiscordUser?
+        get() {
+            val json = prefs.getString(KEY_VERIFIED_USER, null) ?: return null
+            return try {
+                gson.fromJson(json, DiscordUser::class.java)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        set(value) {
+            val json = if (value != null) gson.toJson(value) else null
+            prefs.edit().putString(KEY_VERIFIED_USER, json).apply()
+        }
 
     var clientId: String
         get() = prefs.getString(KEY_CLIENT_ID, "1536494151074586624") ?: "1536494151074586624"

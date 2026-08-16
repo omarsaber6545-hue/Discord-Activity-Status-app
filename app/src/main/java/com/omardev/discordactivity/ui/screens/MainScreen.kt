@@ -19,12 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.omardev.discordactivity.data.models.DevicePlatform
 import com.omardev.discordactivity.data.models.DiscordPresence
 import com.omardev.discordactivity.network.GatewayConnectionState
@@ -39,7 +41,10 @@ fun MainScreen(viewModel: MainViewModel) {
     val presets by viewModel.presets.collectAsState()
     val selectedPresetName by viewModel.selectedPresetName.collectAsState()
     val selectedPlatform by viewModel.selectedPlatform.collectAsState()
-    val botToken by viewModel.botToken.collectAsState()
+    val token by viewModel.token.collectAsState()
+    val verifiedUser by viewModel.verifiedUser.collectAsState()
+    val isVerifying by viewModel.isVerifying.collectAsState()
+    val verificationMessage by viewModel.verificationMessage.collectAsState()
     val clientId by viewModel.clientId.collectAsState()
     val presence by viewModel.presence.collectAsState()
 
@@ -120,11 +125,12 @@ fun MainScreen(viewModel: MainViewModel) {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 1. Live Discord Card Preview
+            // 1. Live Discord Card Preview with real account avatar
             DiscordLiveCard(
                 presence = presence,
                 platform = selectedPlatform,
-                connectionState = connectionState
+                connectionState = connectionState,
+                verifiedUser = verifiedUser
             )
 
             Spacer(modifier = Modifier.height(18.dp))
@@ -150,7 +156,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 4. Discord Bot Credentials Section
+            // 4. Account Token Setup Card (Exact Design as Requested)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -166,28 +172,46 @@ fun MainScreen(viewModel: MainViewModel) {
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "DISCORD BOT CREDENTIALS",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = DarkTextSecondary,
+                            text = "Account Token Setup",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = DarkTextPrimary,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    Text(
+                        text = "Account / Bot Token:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = DarkTextSecondary,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
                     OutlinedTextField(
-                        value = botToken,
+                        value = token,
                         onValueChange = { viewModel.onTokenChanged(it) },
-                        label = { Text("Discord Bot Token") },
-                        placeholder = { Text("MTAx...") },
+                        placeholder = { Text("Paste your Discord token here...") },
                         singleLine = true,
                         visualTransformation = if (showTokenPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
-                            IconButton(onClick = { showTokenPassword = !showTokenPassword }) {
+                            TextButton(
+                                onClick = { showTokenPassword = !showTokenPassword },
+                                modifier = Modifier.padding(end = 4.dp)
+                            ) {
                                 Icon(
                                     imageVector = if (showTokenPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                     contentDescription = null,
-                                    tint = DarkTextSecondary
+                                    tint = DarkTextSecondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (showTokenPassword) "Hide" else "Show",
+                                    color = DarkTextSecondary,
+                                    fontSize = 12.sp
                                 )
                             }
                         },
@@ -203,26 +227,106 @@ fun MainScreen(viewModel: MainViewModel) {
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    OutlinedTextField(
-                        value = clientId,
-                        onValueChange = { viewModel.onClientIdChanged(it) },
-                        label = { Text("Application / Client ID") },
-                        placeholder = { Text("1536494151074586624") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = DarkInputBg,
-                            unfocusedContainerColor = DarkInputBg,
-                            focusedBorderColor = DiscordBlurple,
-                            unfocusedBorderColor = DarkCardBorder,
-                            focusedTextColor = DarkTextPrimary,
-                            unfocusedTextColor = DarkTextPrimary
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                    // Verify Account Token Button
+                    Button(
+                        onClick = { viewModel.verifyToken() },
+                        enabled = !isVerifying,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF35363C),
+                            contentColor = DarkTextPrimary
+                        )
+                    ) {
+                        if (isVerifying) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = AccentCyan,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Verifying Account...", fontWeight = FontWeight.Bold)
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = AccentCyan
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("🔒 Verify Account Token", fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    // Verification Result Message
+                    if (verificationMessage != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = verificationMessage!!,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (verificationMessage!!.startsWith("✅")) DiscordGreen else if (verificationMessage!!.startsWith("🔄")) DiscordYellow else DiscordRed,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    // Verified User Profile Box
+                    if (verifiedUser != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = DarkInputBg,
+                            border = CardDefaults.outlinedCardBorder()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                AsyncImage(
+                                    model = verifiedUser!!.avatarUrl,
+                                    contentDescription = "Avatar",
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = verifiedUser!!.displayName,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = DarkTextPrimary
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = DiscordGreen.copy(alpha = 0.2f)
+                                        ) {
+                                            Text(
+                                                text = "VERIFIED",
+                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = DiscordGreen,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        text = "${verifiedUser!!.fullTag} • ID: ${verifiedUser!!.id}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = DarkTextMuted,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

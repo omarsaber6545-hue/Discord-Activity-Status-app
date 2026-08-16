@@ -8,7 +8,9 @@ import com.omardev.discordactivity.data.models.ActivityPreset
 import com.omardev.discordactivity.data.models.AppNotification
 import com.omardev.discordactivity.data.models.DevicePlatform
 import com.omardev.discordactivity.data.models.DiscordPresence
+import com.omardev.discordactivity.data.models.DiscordUser
 import com.omardev.discordactivity.data.models.NotificationLevel
+import com.omardev.discordactivity.network.DiscordApiClient
 import com.omardev.discordactivity.service.DiscordPresenceService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +20,7 @@ import kotlinx.coroutines.launch
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = (application as App).preferencesManager
+    private val apiClient = DiscordApiClient()
 
     val connectionState = DiscordPresenceService.connectionState
     val notificationsLog = DiscordPresenceService.notificationsLog
@@ -31,8 +34,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedPlatform = MutableStateFlow(prefs.devicePlatform)
     val selectedPlatform: StateFlow<DevicePlatform> = _selectedPlatform.asStateFlow()
 
-    private val _botToken = MutableStateFlow(prefs.botToken)
-    val botToken: StateFlow<String> = _botToken.asStateFlow()
+    private val _token = MutableStateFlow(prefs.token)
+    val token: StateFlow<String> = _token.asStateFlow()
+
+    private val _verifiedUser = MutableStateFlow<DiscordUser?>(prefs.verifiedUser)
+    val verifiedUser: StateFlow<DiscordUser?> = _verifiedUser.asStateFlow()
+
+    private val _isVerifying = MutableStateFlow(false)
+    val isVerifying: StateFlow<Boolean> = _isVerifying.asStateFlow()
+
+    private val _verificationMessage = MutableStateFlow<String?>(null)
+    val verificationMessage: StateFlow<String?> = _verificationMessage.asStateFlow()
 
     private val _clientId = MutableStateFlow(prefs.clientId)
     val clientId: StateFlow<String> = _clientId.asStateFlow()
@@ -63,8 +75,59 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val afkCooldownSec: StateFlow<Int> = _afkCooldownSec.asStateFlow()
 
     fun onTokenChanged(value: String) {
-        _botToken.value = value
-        prefs.botToken = value
+        _token.value = value
+        prefs.token = value
+    }
+
+    fun verifyToken() {
+        val currentToken = _token.value.trim()
+        if (currentToken.isBlank()) {
+            _verificationMessage.value = "❌ Please enter your Token first!"
+            return
+        }
+
+        viewModelScope.launch {
+            _isVerifying.value = true
+            _verificationMessage.value = "🔄 Verifying Account Token..."
+
+            val result = apiClient.verifyToken(currentToken)
+            _isVerifying.value = false
+
+            result.onSuccess { user ->
+                _verifiedUser.value = user
+                prefs.verifiedUser = user
+                prefs.isUserToken = user.isUserToken
+                _verificationMessage.value = if (user.isUserToken) {
+                    "✅ Account Verified: ${user.fullTag}"
+                } else {
+                    "✅ Bot Account Verified: ${user.displayName}"
+                }
+
+                // Add to Notification Center
+                val current = DiscordPresenceService.notificationsLog.value.toMutableList()
+                current.add(
+                    0,
+                    AppNotification(
+                        level = NotificationLevel.SUCCESS,
+                        title = "Token Verified",
+                        message = "Logged in as ${user.fullTag} (${if (user.isUserToken) "User Account" else "Bot Account"})"
+                    )
+                )
+                DiscordPresenceService.notificationsLog.value = current
+            }.onFailure { error ->
+                _verificationMessage.value = "❌ ${error.localizedMessage ?: "Invalid Token!"}"
+                val current = DiscordPresenceService.notificationsLog.value.toMutableList()
+                current.add(
+                    0,
+                    AppNotification(
+                        level = NotificationLevel.ERROR,
+                        title = "Token Verification Failed",
+                        message = error.localizedMessage ?: "Invalid Token"
+                    )
+                )
+                DiscordPresenceService.notificationsLog.value = current
+            }
+        }
     }
 
     fun onClientIdChanged(value: String) {
