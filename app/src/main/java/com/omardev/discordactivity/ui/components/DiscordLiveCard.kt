@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material.icons.filled.OpenInNew
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -160,7 +159,7 @@ fun DiscordLiveCard(
                         }
                         Text(
                             text = when (connectionState) {
-                                GatewayConnectionState.IDENTIFIED -> "Active Rich Presence"
+                                GatewayConnectionState.IDENTIFIED -> "Active: ${platform.title}"
                                 GatewayConnectionState.CONNECTING -> "Connecting..."
                                 GatewayConnectionState.CONNECTED -> "Handshake..."
                                 GatewayConnectionState.ERROR -> "Offline / Error"
@@ -214,60 +213,47 @@ fun DiscordLiveCard(
                 verticalAlignment = Alignment.Top
             ) {
                 // Large & Small Image Asset
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DarkInputBg)
-                ) {
-                    if (presence.largeImage.isNotBlank()) {
+                if (presence.enableLargeImage && presence.largeImage.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(DarkInputBg)
+                    ) {
                         AsyncImage(
                             model = presence.largeImage,
                             contentDescription = presence.largeText,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop
                         )
-                    } else {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SportsEsports,
-                                contentDescription = null,
-                                tint = DarkTextMuted,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-                    }
 
-                    // Small image badge
-                    if (presence.smallImage.isNotBlank()) {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .align(Alignment.BottomEnd)
-                                .offset(x = 2.dp, y = 2.dp)
-                                .clip(CircleShape)
-                                .background(DarkCard)
-                                .border(2.dp, DarkCard, CircleShape)
-                        ) {
-                            AsyncImage(
-                                model = presence.smallImage,
-                                contentDescription = presence.smallText,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
+                        // Small image badge
+                        if (presence.enableSmallImage && presence.smallImage.isNotBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .align(Alignment.BottomEnd)
+                                    .offset(x = 2.dp, y = 2.dp)
+                                    .clip(CircleShape)
+                                    .background(DarkCard)
+                                    .border(2.dp, DarkCard, CircleShape)
+                            ) {
+                                AsyncImage(
+                                    model = presence.smallImage,
+                                    contentDescription = presence.smallText,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         }
                     }
+                    Spacer(modifier = Modifier.width(14.dp))
                 }
-
-                Spacer(modifier = Modifier.width(14.dp))
 
                 // Activity Texts
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = presence.gameName.ifBlank { "Custom Game" },
+                        text = presence.gameName.ifBlank { platform.title },
                         style = MaterialTheme.typography.titleMedium,
                         color = DarkTextPrimary,
                         fontWeight = FontWeight.Bold,
@@ -275,7 +261,7 @@ fun DiscordLiveCard(
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    if (presence.details.isNotBlank()) {
+                    if (presence.enableDetails && presence.details.isNotBlank()) {
                         Text(
                             text = presence.details,
                             style = MaterialTheme.typography.bodyMedium,
@@ -285,7 +271,7 @@ fun DiscordLiveCard(
                         )
                     }
 
-                    if (presence.state.isNotBlank()) {
+                    if (presence.enableState && presence.state.isNotBlank()) {
                         Text(
                             text = presence.state,
                             style = MaterialTheme.typography.bodyMedium,
@@ -308,13 +294,15 @@ fun DiscordLiveCard(
             }
 
             // Interactive Buttons Preview
-            if (presence.button1Label.isNotBlank() || presence.button2Label.isNotBlank()) {
+            val hasBtn1 = presence.enableButton1 && presence.button1Label.isNotBlank()
+            val hasBtn2 = presence.enableButton2 && presence.button2Label.isNotBlank()
+            if (hasBtn1 || hasBtn2) {
                 Spacer(modifier = Modifier.height(14.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (presence.button1Label.isNotBlank()) {
+                    if (hasBtn1) {
                         PreviewButton(label = presence.button1Label)
                     }
-                    if (presence.button2Label.isNotBlank()) {
+                    if (hasBtn2) {
                         PreviewButton(label = presence.button2Label)
                     }
                 }

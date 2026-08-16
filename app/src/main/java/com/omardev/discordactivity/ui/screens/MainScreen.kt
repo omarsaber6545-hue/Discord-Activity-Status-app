@@ -125,7 +125,7 @@ fun MainScreen(viewModel: MainViewModel) {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 1. Live Discord Card Preview with real account avatar
+            // 1. Live Discord Card Preview with real account avatar & responsive controls
             DiscordLiveCard(
                 presence = presence,
                 platform = selectedPlatform,
@@ -146,7 +146,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Platform & Spoofer Selector
+            // 3. Platform & Spoofer Selector (PS5 / Xbox / VR / Mobile)
             DevicePlatformSelector(
                 selectedPlatform = selectedPlatform,
                 onPlatformSelected = { platform ->
@@ -156,7 +156,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 4. Account Token Setup Card (Exact Design as Requested)
+            // 4. Account Token Setup Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -332,7 +332,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 5. Activity Customizer Section
+            // 5. Activity Customizer Section with Individual Toggle Switches
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -355,8 +355,9 @@ fun MainScreen(viewModel: MainViewModel) {
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
+                    // Game Name
                     OutlinedTextField(
                         value = presence.gameName,
                         onValueChange = { viewModel.updatePresenceData(presence.copy(gameName = it)) },
@@ -368,107 +369,272 @@ fun MainScreen(viewModel: MainViewModel) {
                         shape = RoundedCornerShape(12.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    OutlinedTextField(
-                        value = presence.details,
-                        onValueChange = { viewModel.updatePresenceData(presence.copy(details = it)) },
-                        label = { Text("Details (Line 1)") },
-                        placeholder = { Text("Developing awesome apps 🚀") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = customTextFieldColors(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = presence.state,
-                        onValueChange = { viewModel.updatePresenceData(presence.copy(state = it)) },
-                        label = { Text("State (Line 2)") },
-                        placeholder = { Text("In Match (Score: 12 - 10)") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = customTextFieldColors(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                    // Details (Line 1) with Toggle Switch
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
-                            value = presence.largeImage,
-                            onValueChange = { viewModel.updatePresenceData(presence.copy(largeImage = it)) },
-                            label = { Text("Large Image URL") },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            colors = customTextFieldColors(),
-                            shape = RoundedCornerShape(12.dp)
+                        Text(
+                            text = "Enable Details (Line 1)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = DarkTextPrimary,
+                            fontWeight = FontWeight.Medium
                         )
+                        Switch(
+                            checked = presence.enableDetails,
+                            onCheckedChange = { viewModel.updatePresenceData(presence.copy(enableDetails = it)) },
+                            colors = customSwitchColors()
+                        )
+                    }
+                    if (presence.enableDetails) {
+                        Spacer(modifier = Modifier.height(4.dp))
                         OutlinedTextField(
-                            value = presence.smallImage,
-                            onValueChange = { viewModel.updatePresenceData(presence.copy(smallImage = it)) },
-                            label = { Text("Small Image URL") },
+                            value = presence.details,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(details = it)) },
+                            label = { Text("Details Text") },
+                            placeholder = { Text("Developing awesome apps 🚀") },
                             singleLine = true,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.fillMaxWidth(),
                             colors = customTextFieldColors(),
                             shape = RoundedCornerShape(12.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // State (Line 2) with Toggle Switch
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Enable State (Line 2)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = DarkTextPrimary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Switch(
+                            checked = presence.enableState,
+                            onCheckedChange = { viewModel.updatePresenceData(presence.copy(enableState = it)) },
+                            colors = customSwitchColors()
+                        )
+                    }
+                    if (presence.enableState) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = presence.state,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(state = it)) },
+                            label = { Text("State Text") },
+                            placeholder = { Text("In Match (Score: 12 - 10)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Large Image with Toggle Switch
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Enable Large Image Asset",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = DarkTextPrimary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Switch(
+                            checked = presence.enableLargeImage,
+                            onCheckedChange = { viewModel.updatePresenceData(presence.copy(enableLargeImage = it)) },
+                            colors = customSwitchColors()
+                        )
+                    }
+                    if (presence.enableLargeImage) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = presence.largeImage,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(largeImage = it)) },
+                            label = { Text("Large Image URL / Asset Key") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = presence.largeText,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(largeText = it)) },
+                            label = { Text("Large Image Hover Text") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Small Image with Toggle Switch
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Enable Small Image Badge",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = DarkTextPrimary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Switch(
+                            checked = presence.enableSmallImage,
+                            onCheckedChange = { viewModel.updatePresenceData(presence.copy(enableSmallImage = it)) },
+                            colors = customSwitchColors()
+                        )
+                    }
+                    if (presence.enableSmallImage) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = presence.smallImage,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(smallImage = it)) },
+                            label = { Text("Small Image URL / Key") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = presence.smallText,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(smallText = it)) },
+                            label = { Text("Small Image Hover Text") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     // Timer Switch
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "Show Elapsed Timer ⏱️",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = DarkTextPrimary
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = DarkTextPrimary,
+                            fontWeight = FontWeight.Medium
                         )
                         Switch(
                             checked = presence.showTimer,
                             onCheckedChange = { viewModel.updatePresenceData(presence.copy(showTimer = it)) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = DarkTextPrimary,
-                                checkedTrackColor = DiscordBlurple
-                            )
+                            colors = customSwitchColors()
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider(color = DarkCardBorder)
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Buttons Labels & URLs
-                    OutlinedTextField(
-                        value = presence.button1Label,
-                        onValueChange = { viewModel.updatePresenceData(presence.copy(button1Label = it)) },
-                        label = { Text("Button 1 Label") },
-                        placeholder = { Text("Omar Dev Site") },
-                        singleLine = true,
+                    // Button 1 with Toggle Switch
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = customTextFieldColors(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    OutlinedTextField(
-                        value = presence.button1Url,
-                        onValueChange = { viewModel.updatePresenceData(presence.copy(button1Url = it)) },
-                        label = { Text("Button 1 URL") },
-                        placeholder = { Text("https://omar-dev.site") },
-                        singleLine = true,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Enable Button 1 🔗",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = DarkTextPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Switch(
+                            checked = presence.enableButton1,
+                            onCheckedChange = { viewModel.updatePresenceData(presence.copy(enableButton1 = it)) },
+                            colors = customSwitchColors()
+                        )
+                    }
+                    if (presence.enableButton1) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = presence.button1Label,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(button1Label = it)) },
+                            label = { Text("Button 1 Label") },
+                            placeholder = { Text("Omar Dev Site") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = presence.button1Url,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(button1Url = it)) },
+                            label = { Text("Button 1 URL") },
+                            placeholder = { Text("https://omar-dev.site") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Button 2 with Toggle Switch
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = customTextFieldColors(),
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Enable Button 2 🔗",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = DarkTextPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Switch(
+                            checked = presence.enableButton2,
+                            onCheckedChange = { viewModel.updatePresenceData(presence.copy(enableButton2 = it)) },
+                            colors = customSwitchColors()
+                        )
+                    }
+                    if (presence.enableButton2) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = presence.button2Label,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(button2Label = it)) },
+                            label = { Text("Button 2 Label") },
+                            placeholder = { Text("GitHub: Omar-Dev") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = presence.button2Url,
+                            onValueChange = { viewModel.updatePresenceData(presence.copy(button2Url = it)) },
+                            label = { Text("Button 2 URL") },
+                            placeholder = { Text("https://github.com/omarsaber6545-hue") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
                 }
             }
 
@@ -667,4 +833,12 @@ private fun customTextFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedTextColor = DarkTextPrimary,
     focusedLabelColor = DiscordBlurple,
     unfocusedLabelColor = DarkTextSecondary
+)
+
+@Composable
+private fun customSwitchColors() = SwitchDefaults.colors(
+    checkedThumbColor = DarkTextPrimary,
+    checkedTrackColor = DiscordBlurple,
+    uncheckedThumbColor = DarkTextMuted,
+    uncheckedTrackColor = DarkInputBg
 )

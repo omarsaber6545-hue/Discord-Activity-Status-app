@@ -30,7 +30,8 @@ data class HelloData(
 data class IdentifyProperties(
     @SerializedName("os") val os: String,
     @SerializedName("browser") val browser: String,
-    @SerializedName("device") val device: String
+    @SerializedName("device") val device: String,
+    @SerializedName("system_locale") val systemLocale: String = "en-US"
 )
 
 data class ActivityButton(
@@ -52,9 +53,11 @@ data class ActivityTimestamps(
 
 data class ActivityData(
     @SerializedName("name") val name: String,
-    @SerializedName("type") val type: Int = 0, // 0 = Playing, 1 = Streaming, 2 = Listening, 3 = Watching, 4 = Custom, 5 = Competing
+    @SerializedName("type") val type: Int = 0,
     @SerializedName("details") val details: String? = null,
     @SerializedName("state") val state: String? = null,
+    @SerializedName("platform") val platform: String? = null,
+    @SerializedName("flags") val flags: Int? = null,
     @SerializedName("timestamps") val timestamps: ActivityTimestamps? = null,
     @SerializedName("assets") val assets: ActivityAssets? = null,
     @SerializedName("buttons") val buttons: List<String>? = null,
@@ -70,6 +73,7 @@ data class PresenceUpdateData(
 
 data class IdentifyData(
     @SerializedName("token") val token: String,
+    @SerializedName("capabilities") val capabilities: Int = 30717,
     @SerializedName("properties") val properties: IdentifyProperties,
     @SerializedName("presence") val presence: PresenceUpdateData,
     @SerializedName("intents") val intents: Long = 3276799

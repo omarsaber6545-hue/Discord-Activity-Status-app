@@ -21,7 +21,7 @@ enum class GatewayConnectionState {
 class DiscordGatewayClient(
     private val token: String,
     private val isUserToken: Boolean = false,
-    private val platform: DevicePlatform,
+    private var platform: DevicePlatform,
     private var currentPresence: DiscordPresence,
     private val voiceChannelId: String = "",
     private val voiceMute: Boolean = true,
@@ -68,12 +68,12 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "Gateway Connection",
-                message = "Connecting to Discord Gateway v10 (${platform.title})..."
+                message = "Connecting to Discord Gateway v9/v10 (${platform.title})..."
             )
         )
 
         val request = Request.Builder()
-            .url("wss://gateway.discord.gg/?v=10&encoding=json")
+            .url("wss://gateway.discord.gg/?v=9&encoding=json")
             .build()
 
         webSocket = client.newWebSocket(request, this)
@@ -94,15 +94,18 @@ class DiscordGatewayClient(
         )
     }
 
-    fun updatePresence(newPresence: DiscordPresence) {
+    fun updatePresence(newPresence: DiscordPresence, newPlatform: DevicePlatform? = null) {
         this.currentPresence = newPresence
+        if (newPlatform != null) {
+            this.platform = newPlatform
+        }
         if (connectionState == GatewayConnectionState.IDENTIFIED) {
             sendPresenceUpdate(newPresence)
             onLog(
                 AppNotification(
                     level = NotificationLevel.SUCCESS,
                     title = "Presence Updated",
-                    message = "Active Status: Playing ${newPresence.gameName}"
+                    message = "Active Status: Playing ${newPresence.gameName} [${platform.title}]"
                 )
             )
         }
@@ -114,7 +117,7 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "WebSocket Connected",
-                message = "Socket connection established. Initializing session..."
+                message = "Socket connection established with platform signature: ${platform.title}."
             )
         )
     }
@@ -224,6 +227,46 @@ class DiscordGatewayClient(
         webSocket?.send(gson.toJson(payload))
     }
 
+    private fun buildActivityData(presence: DiscordPresence): ActivityData {
+        val details = if (presence.enableDetails && presence.details.isNotBlank()) presence.details else null
+        val state = if (presence.enableState && presence.state.isNotBlank()) presence.state else null
+        val timestamps = if (presence.showTimer) ActivityTimestamps(start = presence.startTimestamp) else null
+
+        val largeImg = if (presence.enableLargeImage && presence.largeImage.isNotBlank()) presence.largeImage else null
+        val largeTxt = if (presence.enableLargeImage && presence.largeText.isNotBlank()) presence.largeText else null
+        val smallImg = if (presence.enableSmallImage && presence.smallImage.isNotBlank()) presence.smallImage else null
+        val smallTxt = if (presence.enableSmallImage && presence.smallText.isNotBlank()) presence.smallText else null
+
+        val assets = if (largeImg != null || smallImg != null) {
+            ActivityAssets(
+                largeImage = largeImg,
+                largeText = largeTxt,
+                smallImage = smallImg,
+                smallText = smallTxt
+            )
+        } else null
+
+        val buttonLabels = mutableListOf<String>()
+        if (presence.enableButton1 && presence.button1Label.isNotBlank()) {
+            buttonLabels.add(presence.button1Label)
+        }
+        if (presence.enableButton2 && presence.button2Label.isNotBlank()) {
+            buttonLabels.add(presence.button2Label)
+        }
+
+        return ActivityData(
+            name = presence.gameName.ifBlank { platform.title },
+            type = 0,
+            details = details,
+            state = state,
+            platform = platform.platformKey,
+            flags = if (platform.flags > 0) platform.flags else null,
+            timestamps = timestamps,
+            assets = assets,
+            buttons = buttonLabels.ifEmpty { null }
+        )
+    }
+
     private fun sendIdentify() {
         val cleanToken = token.trim()
         val authHeaderToken = if (isUserToken) {
@@ -232,33 +275,19 @@ class DiscordGatewayClient(
             if (cleanToken.startsWith("Bot ")) cleanToken else "Bot $cleanToken"
         }
 
-        val activity = ActivityData(
-            name = currentPresence.gameName,
-            type = 0,
-            details = currentPresence.details.ifBlank { null },
-            state = currentPresence.state.ifBlank { null },
-            timestamps = if (currentPresence.showTimer) ActivityTimestamps(start = currentPresence.startTimestamp) else null,
-            assets = ActivityAssets(
-                largeImage = currentPresence.largeImage.ifBlank { null },
-                largeText = currentPresence.largeText.ifBlank { null },
-                smallImage = currentPresence.smallImage.ifBlank { null },
-                smallText = currentPresence.smallText.ifBlank { null }
-            ),
-            buttons = listOfNotNull(
-                currentPresence.button1Label.ifBlank { null },
-                currentPresence.button2Label.ifBlank { null }
-            ).ifEmpty { null }
-        )
+        val activity = buildActivityData(currentPresence)
 
         val identifyData = IdentifyData(
             token = authHeaderToken,
+            capabilities = 30717,
             properties = IdentifyProperties(
                 os = platform.osName,
                 browser = platform.browserName,
-                device = platform.title
+                device = platform.deviceName,
+                systemLocale = "en-US"
             ),
             presence = PresenceUpdateData(
-                since = 0,
+                since = currentPresence.startTimestamp,
                 activities = listOf(activity),
                 status = "online",
                 afk = false
@@ -275,26 +304,10 @@ class DiscordGatewayClient(
     }
 
     private fun sendPresenceUpdate(presence: DiscordPresence) {
-        val activity = ActivityData(
-            name = presence.gameName,
-            type = 0,
-            details = presence.details.ifBlank { null },
-            state = presence.state.ifBlank { null },
-            timestamps = if (presence.showTimer) ActivityTimestamps(start = presence.startTimestamp) else null,
-            assets = ActivityAssets(
-                largeImage = presence.largeImage.ifBlank { null },
-                largeText = presence.largeText.ifBlank { null },
-                smallImage = presence.smallImage.ifBlank { null },
-                smallText = presence.smallText.ifBlank { null }
-            ),
-            buttons = listOfNotNull(
-                presence.button1Label.ifBlank { null },
-                presence.button2Label.ifBlank { null }
-            ).ifEmpty { null }
-        )
+        val activity = buildActivityData(presence)
 
         val updateData = PresenceUpdateData(
-            since = 0,
+            since = presence.startTimestamp,
             activities = listOf(activity),
             status = "online",
             afk = false

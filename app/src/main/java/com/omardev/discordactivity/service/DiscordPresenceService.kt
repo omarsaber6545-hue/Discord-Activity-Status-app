@@ -77,8 +77,8 @@ class DiscordPresenceService : Service() {
             }
             ACTION_UPDATE_PRESENCE -> {
                 val prefs = (application as App).preferencesManager
-                gatewayClient?.updatePresence(prefs.presence)
-                updateNotification("Active: Playing ${prefs.presence.gameName}")
+                gatewayClient?.updatePresence(prefs.presence, prefs.devicePlatform)
+                updateNotification("Active: Playing ${prefs.presence.gameName} [${prefs.devicePlatform.title}]")
             }
         }
         return START_STICKY
@@ -103,8 +103,8 @@ class DiscordPresenceService : Service() {
             onStateChanged = { state ->
                 connectionState.value = state
                 val stateText = when (state) {
-                    GatewayConnectionState.IDENTIFIED -> "Online: Playing ${presence.gameName}"
-                    GatewayConnectionState.CONNECTING -> "Connecting to Discord..."
+                    GatewayConnectionState.IDENTIFIED -> "Online: Playing ${presence.gameName} [${platform.title}]"
+                    GatewayConnectionState.CONNECTING -> "Connecting to Discord (${platform.title})..."
                     GatewayConnectionState.CONNECTED -> "Handshake complete..."
                     GatewayConnectionState.ERROR -> "Connection Error"
                     GatewayConnectionState.DISCONNECTED -> "Disconnected"

@@ -11,6 +11,7 @@ import com.omardev.discordactivity.data.models.DiscordPresence
 import com.omardev.discordactivity.data.models.DiscordUser
 import com.omardev.discordactivity.data.models.NotificationLevel
 import com.omardev.discordactivity.network.DiscordApiClient
+import com.omardev.discordactivity.network.GatewayConnectionState
 import com.omardev.discordactivity.service.DiscordPresenceService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -103,7 +104,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     "✅ Bot Account Verified: ${user.displayName}"
                 }
 
-                // Add to Notification Center
                 val current = DiscordPresenceService.notificationsLog.value.toMutableList()
                 current.add(
                     0,
@@ -138,6 +138,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun onPlatformSelected(platform: DevicePlatform) {
         _selectedPlatform.value = platform
         prefs.devicePlatform = platform
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
+            pushPresenceUpdate()
+        }
     }
 
     fun onPresetSelected(preset: ActivityPreset) {
@@ -145,6 +148,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         prefs.activePresetName = preset.name
         _presence.value = preset.presence.copy(startTimestamp = System.currentTimeMillis())
         prefs.presence = _presence.value
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
+            pushPresenceUpdate()
+        }
     }
 
     fun updatePresenceData(newPresence: DiscordPresence) {
@@ -189,8 +195,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleService() {
         val app = getApplication<Application>()
-        if (connectionState.value == com.omardev.discordactivity.network.GatewayConnectionState.DISCONNECTED ||
-            connectionState.value == com.omardev.discordactivity.network.GatewayConnectionState.ERROR
+        if (connectionState.value == GatewayConnectionState.DISCONNECTED ||
+            connectionState.value == GatewayConnectionState.ERROR
         ) {
             DiscordPresenceService.startService(app)
         } else {
