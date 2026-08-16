@@ -30,8 +30,12 @@ class DiscordGatewayClient(
     private var enableDualMode: Boolean = false,
     private var secondaryPlatform: DevicePlatform = DevicePlatform.VR,
     private var secondaryGameName: String = "Virtual Reality VR 🥽",
+    private var secondaryEnableDetails: Boolean = true,
     private var secondaryDetails: String = "Playing in VR",
+    private var secondaryEnableState: Boolean = true,
     private var secondaryState: String = "Meta Quest 3 Active",
+    private var secondaryEnableAfk: Boolean = false,
+    private var secondaryShowTimer: Boolean = true,
     private var enableVoiceStay: Boolean = false,
     private var voiceChannelId: String = "",
     private var voiceMute: Boolean = true,
@@ -150,8 +154,12 @@ class DiscordGatewayClient(
         enableDualMode: Boolean = this.enableDualMode,
         secondaryPlatform: DevicePlatform = this.secondaryPlatform,
         secondaryGameName: String = this.secondaryGameName,
+        secondaryEnableDetails: Boolean = this.secondaryEnableDetails,
         secondaryDetails: String = this.secondaryDetails,
+        secondaryEnableState: Boolean = this.secondaryEnableState,
         secondaryState: String = this.secondaryState,
+        secondaryEnableAfk: Boolean = this.secondaryEnableAfk,
+        secondaryShowTimer: Boolean = this.secondaryShowTimer,
         enableVoiceStay: Boolean = this.enableVoiceStay,
         voiceChannelId: String = this.voiceChannelId,
         voiceMute: Boolean = this.voiceMute,
@@ -170,8 +178,12 @@ class DiscordGatewayClient(
         this.enableDualMode = enableDualMode
         this.secondaryPlatform = secondaryPlatform
         this.secondaryGameName = secondaryGameName
+        this.secondaryEnableDetails = secondaryEnableDetails
         this.secondaryDetails = secondaryDetails
+        this.secondaryEnableState = secondaryEnableState
         this.secondaryState = secondaryState
+        this.secondaryEnableAfk = secondaryEnableAfk
+        this.secondaryShowTimer = secondaryShowTimer
         this.enableVoiceStay = enableVoiceStay
         this.voiceChannelId = voiceChannelId
         this.voiceMute = voiceMute
@@ -577,20 +589,21 @@ class DiscordGatewayClient(
         )
         list.add(primaryActivity)
 
-        // 2. Secondary Simultaneous Activity (e.g. Meta Quest 3 VR / Second Console)
+        // 2. Secondary Simultaneous Activity (Dual Mode: VR / PS5 / Xbox / Custom)
         if (enableDualMode) {
             val secName = secondaryGameName.ifBlank { secondaryPlatform.defaultGameName }.trim()
-            val secDetails = secondaryDetails.ifBlank { secondaryPlatform.defaultDetails }.trim()
-            val secState = secondaryState.ifBlank { secondaryPlatform.defaultState }.trim()
+            val secDetails = if (secondaryEnableDetails && secondaryDetails.isNotBlank()) secondaryDetails.trim() else secondaryPlatform.defaultDetails
+            val secState = if (secondaryEnableState && secondaryState.isNotBlank()) secondaryState.trim() else secondaryPlatform.defaultState
+            val finalSecState = if (secondaryEnableAfk) "$secState • AFK ☕" else secState
 
             val secondaryActivity = ActivityData(
                 name = secName,
                 type = 0,
-                details = secDetails,
-                state = secState,
+                details = if (secondaryEnableDetails) secDetails else null,
+                state = if (secondaryEnableState || secondaryEnableAfk) finalSecState else null,
                 platform = secondaryPlatform.platformKey,
                 flags = if (secondaryPlatform.flags > 0) secondaryPlatform.flags else null,
-                timestamps = timestamps
+                timestamps = if (secondaryShowTimer) timestamps else null
             )
             list.add(secondaryActivity)
         }

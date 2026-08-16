@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -46,8 +47,12 @@ fun MainScreen(viewModel: MainViewModel) {
     val enableDualMode by viewModel.enableDualMode.collectAsState()
     val secondaryPlatform by viewModel.secondaryPlatform.collectAsState()
     val secondaryGameName by viewModel.secondaryGameName.collectAsState()
+    val secondaryEnableDetails by viewModel.secondaryEnableDetails.collectAsState()
     val secondaryDetails by viewModel.secondaryDetails.collectAsState()
+    val secondaryEnableState by viewModel.secondaryEnableState.collectAsState()
     val secondaryState by viewModel.secondaryState.collectAsState()
+    val secondaryEnableAfk by viewModel.secondaryEnableAfk.collectAsState()
+    val secondaryShowTimer by viewModel.secondaryShowTimer.collectAsState()
 
     val token by viewModel.token.collectAsState()
     val verifiedUser by viewModel.verifiedUser.collectAsState()
@@ -88,6 +93,17 @@ fun MainScreen(viewModel: MainViewModel) {
         } else false
     }
 
+    // Popular games list depending on selected secondary platform
+    val secondaryPopularGames = remember(secondaryPlatform) {
+        when (secondaryPlatform) {
+            DevicePlatform.PS5 -> listOf("Grand Theft Auto V (PS5)", "EA Sports FC 24", "Marvel's Spider-Man 2", "God of War Ragnarök", "Call of Duty: Warzone", "Fortnite")
+            DevicePlatform.XBOX -> listOf("Forza Horizon 5", "Halo Infinite", "Starfield", "Minecraft", "Call of Duty: Modern Warfare III", "Sea of Thieves")
+            DevicePlatform.VR -> listOf("Beat Saber VR 🥽", "VRChat (Meta Quest 3)", "Blade & Sorcery: Nomad", "Resident Evil 4 VR", "Superhot VR")
+            DevicePlatform.MOBILE -> listOf("PUBG Mobile", "Genshin Impact", "Call of Duty: Mobile", "Roblox", "Clash Royale")
+            DevicePlatform.DESKTOP -> listOf("Valorant", "League of Legends", "Counter-Strike 2", "Visual Studio Code", "Cyberpunk 2077")
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -122,7 +138,6 @@ fun MainScreen(viewModel: MainViewModel) {
                     }
                 },
                 actions = {
-                    // Notification Bell Button with counter badge
                     IconButton(onClick = { showNotificationSheet = true }) {
                         BadgedBox(
                             badge = {
@@ -230,7 +245,7 @@ fun MainScreen(viewModel: MainViewModel) {
                                     color = if (enableDualMode) AccentGold else DarkTextPrimary
                                 )
                                 Text(
-                                    text = "تشغيل منصتين معاً في نفس الوقت (مثال: VR + بلايستيشن)",
+                                    text = "تشغيل منصتين معاً في نفس الوقت (مثل: VR + بلايستيشن)",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = DarkTextMuted,
                                     fontSize = 11.sp
@@ -250,7 +265,7 @@ fun MainScreen(viewModel: MainViewModel) {
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "اختر المنصة الثانية المشتركة (Secondary Device):",
+                            text = "اختر المنصة الثانية المشتركة (Secondary Platform):",
                             style = MaterialTheme.typography.labelSmall,
                             color = AccentGold,
                             fontWeight = FontWeight.Bold
@@ -264,18 +279,166 @@ fun MainScreen(viewModel: MainViewModel) {
                             }
                         )
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
+                        // Quick Game Shortcuts for Secondary Platform
+                        Text(
+                            text = "ألعاب شائعة لـ ${secondaryPlatform.title} (اضغط للاختيار السريع):",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = DarkTextSecondary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            secondaryPopularGames.forEach { gName ->
+                                val isChosen = secondaryGameName == gName
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isChosen) AccentGold.copy(alpha = 0.25f) else DarkInputBg,
+                                    border = BorderStroke(1.dp, if (isChosen) AccentGold else DarkCardBorder),
+                                    modifier = Modifier.clickable {
+                                        viewModel.onSecondaryGameNameChanged(gName)
+                                    }
+                                ) {
+                                    Text(
+                                        text = gName,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isChosen) AccentGold else DarkTextPrimary,
+                                        fontWeight = if (isChosen) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Custom Secondary Game Name
                         OutlinedTextField(
                             value = secondaryGameName,
                             onValueChange = { viewModel.onSecondaryGameNameChanged(it) },
-                            label = { Text("Secondary Activity Name") },
+                            label = { Text("Secondary Game / Activity Name") },
                             placeholder = { Text(secondaryPlatform.defaultGameName) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             colors = customTextFieldColors(),
                             shape = RoundedCornerShape(12.dp)
                         )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Secondary Details (Line 1) Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Enable Secondary Details (Line 1)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = DarkTextPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Switch(
+                                checked = secondaryEnableDetails,
+                                onCheckedChange = { viewModel.onSecondaryEnableDetailsChanged(it) },
+                                colors = customSwitchColors()
+                            )
+                        }
+                        if (secondaryEnableDetails) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            OutlinedTextField(
+                                value = secondaryDetails,
+                                onValueChange = { viewModel.onSecondaryDetailsChanged(it) },
+                                label = { Text("Secondary Details Text") },
+                                placeholder = { Text("Playing online with friends") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = customTextFieldColors(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Secondary State (Line 2) Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Enable Secondary State (Line 2)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = DarkTextPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Switch(
+                                checked = secondaryEnableState,
+                                onCheckedChange = { viewModel.onSecondaryEnableStateChanged(it) },
+                                colors = customSwitchColors()
+                            )
+                        }
+                        if (secondaryEnableState) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            OutlinedTextField(
+                                value = secondaryState,
+                                onValueChange = { viewModel.onSecondaryStateChanged(it) },
+                                label = { Text("Secondary State Text") },
+                                placeholder = { Text("In Match (Score: 5 - 2)") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = customTextFieldColors(),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Secondary AFK Mode Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Secondary Activity AFK Mode ☕",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (secondaryEnableAfk) DiscordGreen else DarkTextPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Switch(
+                                checked = secondaryEnableAfk,
+                                onCheckedChange = { viewModel.onSecondaryEnableAfkChanged(it) },
+                                colors = customSwitchColors()
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Secondary Elapsed Timer Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Show Secondary Elapsed Timer ⏱️",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = DarkTextPrimary,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Switch(
+                                checked = secondaryShowTimer,
+                                onCheckedChange = { viewModel.onSecondaryShowTimerChanged(it) },
+                                colors = customSwitchColors()
+                            )
+                        }
                     }
                 }
             }

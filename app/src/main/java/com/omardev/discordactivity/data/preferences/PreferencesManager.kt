@@ -25,8 +25,12 @@ class PreferencesManager(context: Context) {
         private const val KEY_ENABLE_DUAL_MODE = "enable_dual_mode"
         private const val KEY_SECONDARY_PLATFORM = "secondary_platform"
         private const val KEY_SECONDARY_GAME_NAME = "secondary_game_name"
+        private const val KEY_SECONDARY_ENABLE_DETAILS = "secondary_enable_details"
         private const val KEY_SECONDARY_DETAILS = "secondary_details"
+        private const val KEY_SECONDARY_ENABLE_STATE = "secondary_enable_state"
         private const val KEY_SECONDARY_STATE = "secondary_state"
+        private const val KEY_SECONDARY_ENABLE_AFK = "secondary_enable_afk"
+        private const val KEY_SECONDARY_SHOW_TIMER = "secondary_show_timer"
 
         // Voice Stay
         private const val KEY_ENABLE_VOICE_STAY = "enable_voice_stay"
@@ -112,13 +116,29 @@ class PreferencesManager(context: Context) {
         get() = prefs.getString(KEY_SECONDARY_GAME_NAME, "Virtual Reality VR 🥽") ?: "Virtual Reality VR 🥽"
         set(value) = prefs.edit().putString(KEY_SECONDARY_GAME_NAME, value).apply()
 
+    var secondaryEnableDetails: Boolean
+        get() = prefs.getBoolean(KEY_SECONDARY_ENABLE_DETAILS, true)
+        set(value) = prefs.edit().putBoolean(KEY_SECONDARY_ENABLE_DETAILS, value).apply()
+
     var secondaryDetails: String
         get() = prefs.getString(KEY_SECONDARY_DETAILS, "Playing in VR") ?: "Playing in VR"
         set(value) = prefs.edit().putString(KEY_SECONDARY_DETAILS, value).apply()
 
+    var secondaryEnableState: Boolean
+        get() = prefs.getBoolean(KEY_SECONDARY_ENABLE_STATE, true)
+        set(value) = prefs.edit().putBoolean(KEY_SECONDARY_ENABLE_STATE, value).apply()
+
     var secondaryState: String
         get() = prefs.getString(KEY_SECONDARY_STATE, "Meta Quest 3 Active") ?: "Meta Quest 3 Active"
         set(value) = prefs.edit().putString(KEY_SECONDARY_STATE, value).apply()
+
+    var secondaryEnableAfk: Boolean
+        get() = prefs.getBoolean(KEY_SECONDARY_ENABLE_AFK, false)
+        set(value) = prefs.edit().putBoolean(KEY_SECONDARY_ENABLE_AFK, value).apply()
+
+    var secondaryShowTimer: Boolean
+        get() = prefs.getBoolean(KEY_SECONDARY_SHOW_TIMER, true)
+        set(value) = prefs.edit().putBoolean(KEY_SECONDARY_SHOW_TIMER, value).apply()
 
     // 24/7 Voice Stay
     var enableVoiceStay: Boolean

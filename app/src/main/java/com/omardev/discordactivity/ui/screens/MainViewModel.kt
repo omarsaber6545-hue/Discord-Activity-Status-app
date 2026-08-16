@@ -52,11 +52,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _secondaryGameName = MutableStateFlow(prefs.secondaryGameName)
     val secondaryGameName: StateFlow<String> = _secondaryGameName.asStateFlow()
 
+    private val _secondaryEnableDetails = MutableStateFlow(prefs.secondaryEnableDetails)
+    val secondaryEnableDetails: StateFlow<Boolean> = _secondaryEnableDetails.asStateFlow()
+
     private val _secondaryDetails = MutableStateFlow(prefs.secondaryDetails)
     val secondaryDetails: StateFlow<String> = _secondaryDetails.asStateFlow()
 
+    private val _secondaryEnableState = MutableStateFlow(prefs.secondaryEnableState)
+    val secondaryEnableState: StateFlow<Boolean> = _secondaryEnableState.asStateFlow()
+
     private val _secondaryState = MutableStateFlow(prefs.secondaryState)
     val secondaryState: StateFlow<String> = _secondaryState.asStateFlow()
+
+    private val _secondaryEnableAfk = MutableStateFlow(prefs.secondaryEnableAfk)
+    val secondaryEnableAfk: StateFlow<Boolean> = _secondaryEnableAfk.asStateFlow()
+
+    private val _secondaryShowTimer = MutableStateFlow(prefs.secondaryShowTimer)
+    val secondaryShowTimer: StateFlow<Boolean> = _secondaryShowTimer.asStateFlow()
 
     private val _token = MutableStateFlow(prefs.token)
     val token: StateFlow<String> = _token.asStateFlow()
@@ -327,6 +339,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun onSecondaryEnableDetailsChanged(value: Boolean) {
+        _secondaryEnableDetails.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.secondaryEnableDetails = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableDualMode.value) {
+            pushPresenceUpdate()
+        }
+    }
+
     fun onSecondaryDetailsChanged(value: String) {
         _secondaryDetails.value = value
         viewModelScope.launch(Dispatchers.IO) {
@@ -337,10 +359,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun onSecondaryEnableStateChanged(value: Boolean) {
+        _secondaryEnableState.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.secondaryEnableState = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableDualMode.value) {
+            pushPresenceUpdate()
+        }
+    }
+
     fun onSecondaryStateChanged(value: String) {
         _secondaryState.value = value
         viewModelScope.launch(Dispatchers.IO) {
             prefs.secondaryState = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableDualMode.value) {
+            pushPresenceUpdate()
+        }
+    }
+
+    fun onSecondaryEnableAfkChanged(value: Boolean) {
+        _secondaryEnableAfk.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.secondaryEnableAfk = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableDualMode.value) {
+            pushPresenceUpdate()
+        }
+    }
+
+    fun onSecondaryShowTimerChanged(value: Boolean) {
+        _secondaryShowTimer.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.secondaryShowTimer = value
         }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableDualMode.value) {
             pushPresenceUpdate()
