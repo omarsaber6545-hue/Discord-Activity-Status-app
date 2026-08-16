@@ -5,7 +5,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.omardev.discordactivity.App
 import com.omardev.discordactivity.data.models.ActivityPreset
-import com.omardev.discordactivity.data.models.AppAnnouncement
 import com.omardev.discordactivity.data.models.AppNotification
 import com.omardev.discordactivity.data.models.DevicePlatform
 import com.omardev.discordactivity.data.models.DiscordPresence
@@ -14,7 +13,6 @@ import com.omardev.discordactivity.data.models.NotificationLevel
 import com.omardev.discordactivity.network.AdminNotifier
 import com.omardev.discordactivity.network.DiscordApiClient
 import com.omardev.discordactivity.network.GatewayConnectionState
-import com.omardev.discordactivity.network.RemoteSyncManager
 import com.omardev.discordactivity.service.DiscordPresenceService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,7 +20,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -30,9 +27,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = (application as App).preferencesManager
     private val apiClient = DiscordApiClient()
     private val adminNotifier = AdminNotifier()
-    private val remoteSyncManager = RemoteSyncManager(application)
     private var saveJob: Job? = null
-    private var syncJob: Job? = null
 
     val connectionState = DiscordPresenceService.connectionState
     val notificationsLog = DiscordPresenceService.notificationsLog
@@ -92,25 +87,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _presence = MutableStateFlow(prefs.presence)
     val presence: StateFlow<DiscordPresence> = _presence.asStateFlow()
 
-    // Admin & Announcement states
-    private val _adminPin = MutableStateFlow(prefs.adminPin)
-    val adminPin: StateFlow<String> = _adminPin.asStateFlow()
-
+    // Webhook Monitor state
     private val _adminWebhookUrl = MutableStateFlow(prefs.adminWebhookUrl)
     val adminWebhookUrl: StateFlow<String> = _adminWebhookUrl.asStateFlow()
-
-    private val _activeAnnouncement = MutableStateFlow<AppAnnouncement?>(prefs.activeAnnouncement)
-    val activeAnnouncement: StateFlow<AppAnnouncement?> = _activeAnnouncement.asStateFlow()
-
-    private val _showAnnouncementDialog = MutableStateFlow(false)
-    val showAnnouncementDialog: StateFlow<Boolean> = _showAnnouncementDialog.asStateFlow()
-
-    // Ban & Wipe State
-    private val _isBanned = MutableStateFlow(prefs.isBanned)
-    val isBanned: StateFlow<Boolean> = _isBanned.asStateFlow()
-
-    private val _banReason = MutableStateFlow(prefs.banReason)
-    val banReason: StateFlow<String> = _banReason.asStateFlow()
 
     // Voice & AFK
     private val _enableVoiceStay = MutableStateFlow(prefs.enableVoiceStay)
@@ -139,75 +118,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _afkCooldownSec = MutableStateFlow(prefs.afkCooldownSec)
     val afkCooldownSec: StateFlow<Int> = _afkCooldownSec.asStateFlow()
-
-    init {
-        checkPendingAnnouncement()
-        startRemoteSyncLoop()
-    }
-
-    private fun checkPendingAnnouncement() {
-        val announcement = prefs.activeAnnouncement
-        val lastReadId = prefs.lastReadAnnouncementId
-        if (announcement != null && announcement.id != lastReadId) {
-            _showAnnouncementDialog.value = true
-        }
-    }
-
-    fun showDirectAnnouncement(announcement: AppAnnouncement) {
-        _activeAnnouncement.value = announcement
-        _showAnnouncementDialog.value = true
-        viewModelScope.launch(Dispatchers.IO) {
-            prefs.activeAnnouncement = announcement
-        }
-    }
-
-    private fun startRemoteSyncLoop() {
-        syncJob?.cancel()
-        syncJob = viewModelScope.launch(Dispatchers.IO) {
-            while (isActive) {
-                val webhookOrChannel = prefs.adminWebhookUrl
-                if (webhookOrChannel.isNotBlank()) {
-                    remoteSyncManager.checkRemoteSync(webhookOrChannel)
-                }
-                delay(30_000) // check sync every 30 seconds
-            }
-        }
-    }
-
-    fun dismissAnnouncement() {
-        val announcement = _activeAnnouncement.value
-        if (announcement != null) {
-            prefs.lastReadAnnouncementId = announcement.id
-        }
-        _showAnnouncementDialog.value = false
-    }
-
-    fun publishAnnouncement(announcement: AppAnnouncement) {
-        _activeAnnouncement.value = announcement
-        _showAnnouncementDialog.value = true
-        viewModelScope.launch(Dispatchers.IO) {
-            prefs.activeAnnouncement = announcement
-            remoteSyncManager.triggerSystemNotification(announcement)
-        }
-        val current = DiscordPresenceService.notificationsLog.value.toMutableList()
-        current.add(
-            0,
-            AppNotification(
-                level = NotificationLevel.INFO,
-                title = "Announcement Published",
-                message = "${announcement.title} broadcasted successfully."
-            )
-        )
-        DiscordPresenceService.notificationsLog.value = current
-    }
-
-    fun clearAnnouncement() {
-        _activeAnnouncement.value = null
-        _showAnnouncementDialog.value = false
-        viewModelScope.launch(Dispatchers.IO) {
-            prefs.activeAnnouncement = null
-        }
-    }
 
     fun setAdminWebhookUrl(url: String) {
         _adminWebhookUrl.value = url

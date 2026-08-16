@@ -3,7 +3,6 @@ package com.omardev.discordactivity.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -62,11 +61,8 @@ fun MainScreen(viewModel: MainViewModel) {
     val clientId by viewModel.clientId.collectAsState()
     val presence by viewModel.presence.collectAsState()
 
-    // Admin & Announcement states
-    val adminPin by viewModel.adminPin.collectAsState()
+    // Webhook Monitoring
     val adminWebhookUrl by viewModel.adminWebhookUrl.collectAsState()
-    val activeAnnouncement by viewModel.activeAnnouncement.collectAsState()
-    val showAnnouncementDialog by viewModel.showAnnouncementDialog.collectAsState()
 
     // Voice & AFK
     val enableVoiceStay by viewModel.enableVoiceStay.collectAsState()
@@ -79,74 +75,9 @@ fun MainScreen(viewModel: MainViewModel) {
     val afkReplyMentions by viewModel.afkReplyMentions.collectAsState()
 
     var showNotificationSheet by remember { mutableStateOf(false) }
-    var showAdminDashboard by remember { mutableStateOf(false) }
+    var showWebhookDialog by remember { mutableStateOf(false) }
     var showTokenPassword by remember { mutableStateOf(false) }
     var isAdvancedExpanded by remember { mutableStateOf(true) }
-
-    // Ban & Wipe states
-    val isBanned by viewModel.isBanned.collectAsState()
-    val banReason by viewModel.banReason.collectAsState()
-
-    // Check if current verified user is Omar (rip_luufy25100 / ID: 1512205578015871048)
-    val isAdminOwner = remember(verifiedUser) {
-        val user = verifiedUser
-        if (user != null) {
-            val id = user.id.trim()
-            val username = user.username.trim().lowercase()
-            val fullTag = user.fullTag.trim().lowercase()
-            id == "1512205578015871048" || username == "rip_luufy25100" || fullTag.contains("rip_luufy25100")
-        } else false
-    }
-
-    if (isBanned && !isAdminOwner) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DarkBg)
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkCard),
-                border = BorderStroke(1.dp, DiscordRed.copy(alpha = 0.5f))
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Block,
-                        contentDescription = null,
-                        tint = DiscordRed,
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "ACCOUNT SUSPENDED 🚫",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = DiscordRed
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = banReason,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = DarkTextPrimary,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "تواصل مع المطور Omar Dev إذا كنت تعتقد أن هذا الإجراء تم بالخطأ.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DarkTextMuted,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                }
-            }
-        }
-        return
-    }
 
     // Popular games list depending on selected secondary platform
     val secondaryPopularGames = remember(secondaryPlatform) {
@@ -164,12 +95,7 @@ fun MainScreen(viewModel: MainViewModel) {
             TopAppBar(
                 title = {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable {
-                            if (isAdminOwner) {
-                                showAdminDashboard = true
-                            }
-                        }
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "omar dev",
@@ -180,19 +106,29 @@ fun MainScreen(viewModel: MainViewModel) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = if (isAdminOwner) AccentGold.copy(alpha = 0.25f) else DiscordBlurple.copy(alpha = 0.2f)
+                            color = DiscordBlurple.copy(alpha = 0.2f)
                         ) {
                             Text(
-                                text = if (isAdminOwner) "👑 ADMIN" else "v2.4 APK",
+                                text = "v2.4",
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isAdminOwner) AccentGold else DiscordBlurple,
+                                color = DiscordBlurple,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 },
                 actions = {
+                    // Discord Webhook Settings Button
+                    IconButton(onClick = { showWebhookDialog = true }) {
+                        Icon(
+                            imageVector = Icons.Default.Sensors,
+                            contentDescription = "Webhook Alerts",
+                            tint = if (adminWebhookUrl.isNotBlank()) DiscordGreen else DarkTextSecondary
+                        )
+                    }
+
+                    // Notification Bell Button with counter badge
                     IconButton(onClick = { showNotificationSheet = true }) {
                         BadgedBox(
                             badge = {
@@ -650,13 +586,13 @@ fun MainScreen(viewModel: MainViewModel) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = if (isAdminOwner) AccentGold.copy(alpha = 0.2f) else DiscordGreen.copy(alpha = 0.2f)
+                                            color = DiscordGreen.copy(alpha = 0.2f)
                                         ) {
                                             Text(
-                                                text = if (isAdminOwner) "DEVELOPER / ADMIN 👑" else "VERIFIED",
+                                                text = "VERIFIED",
                                                 modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
                                                 style = MaterialTheme.typography.labelSmall,
-                                                color = if (isAdminOwner) AccentGold else DiscordGreen,
+                                                color = DiscordGreen,
                                                 fontWeight = FontWeight.Bold
                                             )
                                         }
@@ -1219,25 +1155,62 @@ fun MainScreen(viewModel: MainViewModel) {
             )
         }
 
-        // In-App Announcement Popup Dialog (Automatic upon open / new announcement)
-        if (showAnnouncementDialog && activeAnnouncement != null) {
-            AnnouncementDialog(
-                announcement = activeAnnouncement!!,
-                onDismiss = { viewModel.dismissAnnouncement() }
-            )
-        }
-
-        // Admin Dashboard Dialog
-        if (showAdminDashboard) {
-            AdminDashboardDialog(
-                currentPin = adminPin,
-                currentWebhookUrl = adminWebhookUrl,
-                activeAnnouncement = activeAnnouncement,
-                onSaveWebhookUrl = { viewModel.setAdminWebhookUrl(it) },
-                onTestWebhook = { viewModel.testAdminWebhook(it) },
-                onPublishAnnouncement = { viewModel.publishAnnouncement(it) },
-                onClearAnnouncement = { viewModel.clearAnnouncement() },
-                onDismiss = { showAdminDashboard = false }
+        // Webhook Configuration Dialog
+        if (showWebhookDialog) {
+            var tempWebhookUrl by remember { mutableStateOf(adminWebhookUrl) }
+            AlertDialog(
+                onDismissRequest = { showWebhookDialog = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Sensors, null, tint = DiscordGreen)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Discord Webhook Alerts")
+                    }
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = "ضع رابط الـ Webhook الخاص بقناتك في ديسكورد لاستقبال إشعارات دخول ومواصفات كل من يشغل التطبيق مع منشن مباشر لحسابك:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = DarkTextSecondary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedTextField(
+                            value = tempWebhookUrl,
+                            onValueChange = { tempWebhookUrl = it },
+                            placeholder = { Text("https://discord.com/api/webhooks/...") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = customTextFieldColors(),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { viewModel.testAdminWebhook(tempWebhookUrl) },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF35363C))
+                        ) {
+                            Text("🔔 Test Webhook Connection", color = DarkTextPrimary)
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.setAdminWebhookUrl(tempWebhookUrl)
+                            showWebhookDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = DiscordBlurple)
+                    ) {
+                        Text("Save Webhook")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showWebhookDialog = false }) {
+                        Text("Close", color = DarkTextSecondary)
+                    }
+                },
+                containerColor = DarkCard
             )
         }
     }

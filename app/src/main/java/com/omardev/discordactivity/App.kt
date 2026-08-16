@@ -10,7 +10,6 @@ class App : Application() {
 
     companion object {
         const val CHANNEL_ID = "discord_presence_channel"
-        const val CHANNEL_ANNOUNCEMENTS_ID = "omar_dev_announcements"
         lateinit var instance: App
             private set
     }
@@ -22,15 +21,12 @@ class App : Application() {
         super.onCreate()
         instance = this
         preferencesManager = PreferencesManager(this)
-        createNotificationChannels()
+        createNotificationChannel()
     }
 
-    private fun createNotificationChannels() {
+    private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = getSystemService(NotificationManager::class.java) ?: return
-
-            // 1. Service Background Running Channel (Low Importance)
-            val serviceChannel = NotificationChannel(
+            val channel = NotificationChannel(
                 CHANNEL_ID,
                 getString(R.string.discord_service_channel_name),
                 NotificationManager.IMPORTANCE_LOW
@@ -38,20 +34,8 @@ class App : Application() {
                 description = getString(R.string.discord_service_channel_desc)
                 setShowBadge(false)
             }
-            manager.createNotificationChannel(serviceChannel)
-
-            // 2. High-Priority Push Announcements & Alerts Channel (Heads-up banner + sound + vibration)
-            val announcementChannel = NotificationChannel(
-                CHANNEL_ANNOUNCEMENTS_ID,
-                "Omar Dev Broadcasts & Notifications",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "High priority notifications from Omar Dev Admin"
-                enableLights(true)
-                enableVibration(true)
-                setShowBadge(true)
-            }
-            manager.createNotificationChannel(announcementChannel)
+            val manager = getSystemService(NotificationManager::class.java)
+            manager?.createNotificationChannel(channel)
         }
     }
 }
