@@ -80,7 +80,6 @@ class DiscordPresenceService : Service() {
                 gatewayClient?.updatePresence(
                     newPresence = prefs.presence,
                     newPlatform = prefs.devicePlatform,
-                    enableVrOverlay = prefs.enableVrOverlay,
                     enableVoiceStay = prefs.enableVoiceStay,
                     voiceChannelId = prefs.voiceChannelId,
                     voiceMute = prefs.voiceMute,
@@ -91,7 +90,7 @@ class DiscordPresenceService : Service() {
                     afkReplyMentions = prefs.afkReplyMentions,
                     afkCooldownSec = prefs.afkCooldownSec
                 )
-                val statusTitle = if (prefs.enableAfk) "AFK Mode Active ☕" else "Active: Playing ${prefs.presence.gameName} [${prefs.devicePlatform.title}]"
+                val statusTitle = if (prefs.enableAfk) "AFK Mode Active ☕" else "Active: Playing ${prefs.presence.gameName.ifBlank { prefs.devicePlatform.defaultGameName }} [${prefs.devicePlatform.title}]"
                 updateNotification(statusTitle)
             }
         }
@@ -104,7 +103,6 @@ class DiscordPresenceService : Service() {
         val isUserToken = prefs.isUserToken
         val clientId = prefs.clientId
         val platform = prefs.devicePlatform
-        val enableVr = prefs.enableVrOverlay
         val presence = prefs.presence
 
         gatewayClient?.disconnect()
@@ -113,7 +111,6 @@ class DiscordPresenceService : Service() {
             isUserToken = isUserToken,
             clientId = clientId,
             platform = platform,
-            enableVrOverlay = enableVr,
             currentPresence = presence,
             enableVoiceStay = prefs.enableVoiceStay,
             voiceChannelId = prefs.voiceChannelId,
@@ -127,7 +124,7 @@ class DiscordPresenceService : Service() {
             onStateChanged = { state ->
                 connectionState.value = state
                 val stateText = when (state) {
-                    GatewayConnectionState.IDENTIFIED -> if (prefs.enableAfk) "AFK Auto-Responder Active ☕" else "Online: Playing ${presence.gameName} [${platform.title}]"
+                    GatewayConnectionState.IDENTIFIED -> if (prefs.enableAfk) "AFK Auto-Responder Active ☕" else "Online: Playing ${presence.gameName.ifBlank { platform.defaultGameName }} [${platform.title}]"
                     GatewayConnectionState.CONNECTING -> "Connecting to Discord (${platform.title})..."
                     GatewayConnectionState.CONNECTED -> "Handshake complete..."
                     GatewayConnectionState.ERROR -> "Connection Error"

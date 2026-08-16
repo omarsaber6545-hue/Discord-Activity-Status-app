@@ -41,7 +41,6 @@ fun MainScreen(viewModel: MainViewModel) {
     val presets by viewModel.presets.collectAsState()
     val selectedPresetName by viewModel.selectedPresetName.collectAsState()
     val selectedPlatform by viewModel.selectedPlatform.collectAsState()
-    val enableVrOverlay by viewModel.enableVrOverlay.collectAsState()
     val token by viewModel.token.collectAsState()
     val verifiedUser by viewModel.verifiedUser.collectAsState()
     val isVerifying by viewModel.isVerifying.collectAsState()
@@ -174,7 +173,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Platform & Console Spoofer (PlayStation 5 / Xbox / Desktop / Mobile)
+            // 3. Platform & Console Spoofer (PS5, Xbox, VR, Mobile, Desktop)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -182,7 +181,7 @@ fun MainScreen(viewModel: MainViewModel) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "🎮 CONSOLE & PLATFORM SPOOFER",
+                        text = "🎮 DEVICE & PLATFORM SPOOFER",
                         style = MaterialTheme.typography.labelSmall,
                         color = DarkTextSecondary,
                         fontWeight = FontWeight.Bold
@@ -198,50 +197,9 @@ fun MainScreen(viewModel: MainViewModel) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 4. Standalone Dedicated VR Card (Meta Quest 3 Spoofer completely separate)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkCard)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = "🥽", fontSize = 22.sp)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = "META QUEST 3 (VR SPOOFER)",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (enableVrOverlay) AccentCyan else DarkTextPrimary
-                                )
-                                Text(
-                                    text = "Separate VR system (Works together with PS5 / Xbox)",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = DarkTextSecondary,
-                                    fontSize = 11.sp
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = enableVrOverlay,
-                            onCheckedChange = { viewModel.onEnableVrOverlayChanged(it) },
-                            colors = customSwitchColors()
-                        )
-                    }
-                }
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 5. Account Token Setup Card
+            // 4. Account Token Setup Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -417,7 +375,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 6. Activity Customizer Section with Individual Toggle Switches
+            // 5. Activity Customizer Section with Individual Toggle Switches
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -447,7 +405,7 @@ fun MainScreen(viewModel: MainViewModel) {
                         value = presence.gameName,
                         onValueChange = { viewModel.updatePresenceData(presence.copy(gameName = it)) },
                         label = { Text("Game / Activity Name") },
-                        placeholder = { Text("Playing omar dev") },
+                        placeholder = { Text(selectedPlatform.defaultGameName) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         colors = customTextFieldColors(),
@@ -729,7 +687,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 7. Advanced 24/7 Voice Channel & AFK Responder (Collapsible)
+            // 6. Advanced 24/7 Voice Channel & AFK Responder (Collapsible)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -894,7 +852,7 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 8. Master Action Buttons
+            // 7. Master Action Buttons
             val isConnected = connectionState == GatewayConnectionState.IDENTIFIED ||
                     connectionState == GatewayConnectionState.CONNECTING ||
                     connectionState == GatewayConnectionState.CONNECTED

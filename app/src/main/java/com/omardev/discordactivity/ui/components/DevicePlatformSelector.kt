@@ -19,13 +19,7 @@ fun DevicePlatformSelector(
     onPlatformSelected: (DevicePlatform) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Only show Console & PC & Mobile (VR is in its own standalone section)
-    val platforms = listOf(
-        DevicePlatform.PS5,
-        DevicePlatform.XBOX,
-        DevicePlatform.DESKTOP,
-        DevicePlatform.MOBILE
-    )
+    val platforms = DevicePlatform.values()
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -43,10 +37,10 @@ fun DevicePlatformSelector(
                         Text(
                             text = "${platform.icon} ${platform.title}",
                             style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                         )
                     },
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = FilterChipDefaults.filterChipColors(
                         containerColor = DarkInputBg,
                         labelColor = DarkTextSecondary,

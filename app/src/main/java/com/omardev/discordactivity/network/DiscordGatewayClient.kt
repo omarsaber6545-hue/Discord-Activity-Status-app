@@ -26,7 +26,6 @@ class DiscordGatewayClient(
     private val isUserToken: Boolean = true,
     private val clientId: String = "1536494151074586624",
     private var platform: DevicePlatform,
-    private var enableVrOverlay: Boolean = false,
     private var currentPresence: DiscordPresence,
     private var enableVoiceStay: Boolean = false,
     private var voiceChannelId: String = "",
@@ -47,6 +46,7 @@ class DiscordGatewayClient(
         .pingInterval(20, TimeUnit.SECONDS)
         .build()
 
+    private val apiClient = DiscordApiClient()
     private val gson = Gson()
     private var webSocket: WebSocket? = null
     private var scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -83,7 +83,7 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "Connecting Gateway",
-                message = "Connecting to Discord Gateway with ${platform.title}${if (enableVrOverlay) " + VR 🥽" else ""}${if (enableVoiceStay) " + Voice Stay 🎙️" else ""}..."
+                message = "Connecting to Discord Gateway with signature: ${platform.title}..."
             )
         )
 
@@ -122,7 +122,9 @@ class DiscordGatewayClient(
             // Ignore
         }
 
-        webSocket?.close(1000, "Client stopped")
+        try {
+            webSocket?.close(1000, "Client stopped")
+        } catch (e: Exception) {}
         webSocket = null
         connectionState = GatewayConnectionState.DISCONNECTED
         onLog(
@@ -137,7 +139,6 @@ class DiscordGatewayClient(
     fun updatePresence(
         newPresence: DiscordPresence,
         newPlatform: DevicePlatform? = null,
-        enableVrOverlay: Boolean = this.enableVrOverlay,
         enableVoiceStay: Boolean = this.enableVoiceStay,
         voiceChannelId: String = this.voiceChannelId,
         voiceMute: Boolean = this.voiceMute,
@@ -149,11 +150,9 @@ class DiscordGatewayClient(
         afkCooldownSec: Int = this.afkCooldownSec
     ) {
         val platformChanged = newPlatform != null && newPlatform != this.platform
-        val vrChanged = enableVrOverlay != this.enableVrOverlay
         val voiceChanged = enableVoiceStay != this.enableVoiceStay || voiceChannelId != this.voiceChannelId || voiceMute != this.voiceMute || voiceDeaf != this.voiceDeaf
 
         this.currentPresence = newPresence
-        this.enableVrOverlay = enableVrOverlay
         this.enableVoiceStay = enableVoiceStay
         this.voiceChannelId = voiceChannelId
         this.voiceMute = voiceMute
@@ -169,36 +168,25 @@ class DiscordGatewayClient(
         }
 
         if (connectionState == GatewayConnectionState.IDENTIFIED) {
-            if (platformChanged || vrChanged) {
+            if (platformChanged) {
                 onLog(
                     AppNotification(
                         level = NotificationLevel.INFO,
                         title = "Platform Switched",
-                        message = "Reconnecting Gateway to apply ${platform.title}${if (enableVrOverlay) " + Quest 3 VR" else ""} signature..."
+                        message = "Reconnecting Gateway to apply ${platform.title} hardware signature..."
                     )
                 )
                 reconnect()
             } else {
                 sendPresenceUpdate(newPresence)
                 if (voiceChanged) {
-                    if (enableVoiceStay && voiceChannelId.isNotBlank()) {
-                        sendVoiceStateUpdate(null, voiceChannelId.trim(), voiceMute, voiceDeaf)
-                        onLog(
-                            AppNotification(
-                                level = NotificationLevel.INFO,
-                                title = "Voice Channel Updated",
-                                message = "Joined Voice Room: $voiceChannelId (Mute: $voiceMute, Deaf: $voiceDeaf)"
-                            )
-                        )
-                    } else {
-                        sendVoiceStateUpdate(null, null, false, false)
-                    }
+                    executeVoiceJoin()
                 }
                 onLog(
                     AppNotification(
                         level = NotificationLevel.SUCCESS,
                         title = "Presence Updated",
-                        message = "Active Status: Playing ${newPresence.gameName} [${platform.title}]"
+                        message = "Active Status: Playing ${newPresence.gameName.ifBlank { platform.defaultGameName }} [${platform.title}]"
                     )
                 )
             }
@@ -248,26 +236,12 @@ class DiscordGatewayClient(
                             AppNotification(
                                 level = NotificationLevel.SUCCESS,
                                 title = "Logged in Successfully",
-                                message = "Active as $myUsername with ${platform.title}${if (enableVrOverlay) " + VR 🥽" else ""} 🎮"
+                                message = "Active as $myUsername with ${platform.title} 🎮"
                             )
                         )
 
-                        // If Voice Stay is enabled, send Opcode 4 (VOICE_STATE_UPDATE) to join the room!
-                        if (enableVoiceStay && voiceChannelId.isNotBlank()) {
-                            sendVoiceStateUpdate(
-                                guildId = null,
-                                channelId = voiceChannelId.trim(),
-                                selfMute = voiceMute,
-                                selfDeaf = voiceDeaf
-                            )
-                            onLog(
-                                AppNotification(
-                                    level = NotificationLevel.SUCCESS,
-                                    title = "🎙️ Joined Voice Channel",
-                                    message = "Connected to Voice Channel ID: $voiceChannelId (Mute: $voiceMute, Deaf: $voiceDeaf)"
-                                )
-                            )
-                        }
+                        // If Voice Stay is enabled, join voice room via Opcode 4
+                        executeVoiceJoin()
                     } else if (eventType == "MESSAGE_CREATE" && data != null) {
                         handleMessageCreateEvent(data)
                     }
@@ -304,6 +278,34 @@ class DiscordGatewayClient(
         }
     }
 
+    private fun executeVoiceJoin() {
+        if (enableVoiceStay && voiceChannelId.isNotBlank()) {
+            scope.launch {
+                val cleanChannel = voiceChannelId.trim()
+                val infoResult = apiClient.fetchChannelInfo(token, cleanChannel)
+                val guildId = infoResult.getOrNull()?.guildId
+                val roomName = infoResult.getOrNull()?.name ?: "Voice Room #$cleanChannel"
+
+                sendVoiceStateUpdate(
+                    guildId = guildId,
+                    channelId = cleanChannel,
+                    selfMute = voiceMute,
+                    selfDeaf = voiceDeaf
+                )
+
+                onLog(
+                    AppNotification(
+                        level = NotificationLevel.SUCCESS,
+                        title = "🎙️ Joined Voice Channel",
+                        message = "Connected 24/7 to: $roomName (Mute: $voiceMute, Deaf: $voiceDeaf)"
+                    )
+                )
+            }
+        } else {
+            sendVoiceStateUpdate(guildId = null, channelId = null, selfMute = false, selfDeaf = false)
+        }
+    }
+
     fun sendVoiceStateUpdate(guildId: String?, channelId: String?, selfMute: Boolean, selfDeaf: Boolean) {
         val voiceData = VoiceStateUpdateData(
             guildId = guildId,
@@ -326,7 +328,6 @@ class DiscordGatewayClient(
             val authorId = author.get("id")?.asString ?: ""
             val isBot = author.has("bot") && author.get("bot").asBoolean
 
-            // Ignore messages from self or bots
             if (authorId.isBlank() || authorId == myUserId || isBot) return
 
             val channelId = data.get("channel_id")?.asString ?: return
@@ -462,8 +463,9 @@ class DiscordGatewayClient(
     }
 
     private fun buildActivityList(presence: DiscordPresence): List<ActivityData> {
-        val details = if (presence.enableDetails && presence.details.isNotBlank()) presence.details.trim() else null
-        val state = if (presence.enableState && presence.state.isNotBlank()) presence.state.trim() else null
+        val gameName = presence.gameName.ifBlank { platform.defaultGameName }.trim()
+        val details = if (presence.enableDetails && presence.details.isNotBlank()) presence.details.trim() else platform.defaultDetails
+        val state = if (presence.enableState && presence.state.isNotBlank()) presence.state.trim() else platform.defaultState
         val timestamps = if (presence.showTimer) ActivityTimestamps(start = presence.startTimestamp) else null
 
         val rawLargeImg = if (presence.enableLargeImage && presence.largeImage.isNotBlank()) presence.largeImage.trim() else null
@@ -503,41 +505,27 @@ class DiscordGatewayClient(
 
         val metadata = if (buttonUrls.isNotEmpty()) ActivityMetadata(buttonUrls = buttonUrls) else null
 
-        val appId = clientId.trim().ifBlank { "1536494151074586624" }
+        val hasRichAssets = (presence.enableLargeImage && presence.largeImage.isNotBlank()) ||
+                (presence.enableSmallImage && presence.smallImage.isNotBlank()) ||
+                (presence.enableButton1 && presence.button1Label.isNotBlank())
+
+        val appId = if (hasRichAssets) clientId.trim().ifBlank { "1536494151074586624" } else null
 
         val mainActivity = ActivityData(
-            name = presence.gameName.ifBlank { platform.title }.trim(),
+            name = gameName,
             type = 0,
             applicationId = appId,
             details = details,
             state = state,
             platform = platform.platformKey,
-            flags = if (enableVrOverlay || platform.flags > 0) 1 else null,
+            flags = if (platform.flags > 0) platform.flags else null,
             timestamps = timestamps,
             assets = assets,
             buttons = buttonLabels.ifEmpty { null },
             metadata = metadata
         )
 
-        val list = mutableListOf(mainActivity)
-
-        // If VR overlay is enabled and platform is not already VR, add secondary Quest 3 VR Activity
-        if (enableVrOverlay && platform != DevicePlatform.VR) {
-            list.add(
-                ActivityData(
-                    name = "Meta Quest 3 🥽",
-                    type = 0,
-                    applicationId = appId,
-                    details = "Virtual Reality Active",
-                    state = "Quest 3 VR Mode",
-                    platform = "vr",
-                    flags = 1,
-                    timestamps = timestamps
-                )
-            )
-        }
-
-        return list
+        return listOf(mainActivity)
     }
 
     private fun sendIdentify() {
@@ -608,7 +596,9 @@ class DiscordGatewayClient(
     }
 
     private fun reconnect() {
-        webSocket?.close(4000, "Reconnecting")
+        try {
+            webSocket?.close(4000, "Reconnecting")
+        } catch (e: Exception) {}
         connect()
     }
 }

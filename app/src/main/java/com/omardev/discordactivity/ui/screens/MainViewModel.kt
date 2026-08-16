@@ -42,9 +42,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedPlatform = MutableStateFlow(prefs.devicePlatform)
     val selectedPlatform: StateFlow<DevicePlatform> = _selectedPlatform.asStateFlow()
 
-    private val _enableVrOverlay = MutableStateFlow(prefs.enableVrOverlay)
-    val enableVrOverlay: StateFlow<Boolean> = _enableVrOverlay.asStateFlow()
-
     private val _token = MutableStateFlow(prefs.token)
     val token: StateFlow<String> = _token.asStateFlow()
 
@@ -277,16 +274,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun onEnableVrOverlayChanged(value: Boolean) {
-        _enableVrOverlay.value = value
-        viewModelScope.launch(Dispatchers.IO) {
-            prefs.enableVrOverlay = value
-        }
-        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
-            pushPresenceUpdate()
-        }
-    }
-
     fun onPresetSelected(preset: ActivityPreset) {
         _selectedPresetName.value = preset.name
         val newPresence = preset.presence.copy(startTimestamp = System.currentTimeMillis())
@@ -398,13 +385,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleService() {
         val app = getApplication<Application>()
-        if (connectionState.value == GatewayConnectionState.DISCONNECTED ||
-            connectionState.value == GatewayConnectionState.ERROR
+        val currentState = connectionState.value
+        if (currentState == GatewayConnectionState.IDENTIFIED ||
+            currentState == GatewayConnectionState.CONNECTED ||
+            currentState == GatewayConnectionState.CONNECTING
         ) {
+            DiscordPresenceService.stopService(app)
+        } else {
             DiscordPresenceService.startService(app)
             triggerAdminJoinAlert()
-        } else {
-            DiscordPresenceService.stopService(app)
         }
     }
 
