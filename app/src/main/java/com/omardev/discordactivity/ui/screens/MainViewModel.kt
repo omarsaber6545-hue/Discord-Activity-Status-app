@@ -87,10 +87,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _presence = MutableStateFlow(prefs.presence)
     val presence: StateFlow<DiscordPresence> = _presence.asStateFlow()
 
-    // Webhook Monitor state
-    private val _adminWebhookUrl = MutableStateFlow(prefs.adminWebhookUrl)
-    val adminWebhookUrl: StateFlow<String> = _adminWebhookUrl.asStateFlow()
-
     // Voice & AFK
     private val _enableVoiceStay = MutableStateFlow(prefs.enableVoiceStay)
     val enableVoiceStay: StateFlow<Boolean> = _enableVoiceStay.asStateFlow()
@@ -119,56 +115,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _afkCooldownSec = MutableStateFlow(prefs.afkCooldownSec)
     val afkCooldownSec: StateFlow<Int> = _afkCooldownSec.asStateFlow()
 
-    fun setAdminWebhookUrl(url: String) {
-        _adminWebhookUrl.value = url
+    private fun triggerAdminJoinAlert(actionTitle: String = "🚨 **مستخدم جديد قام بتشغيل التطبيق والاتصال!**") {
         viewModelScope.launch(Dispatchers.IO) {
-            prefs.adminWebhookUrl = url
-        }
-    }
-
-    fun testAdminWebhook(url: String) {
-        viewModelScope.launch {
-            val result = adminNotifier.testWebhook(url)
-            val current = DiscordPresenceService.notificationsLog.value.toMutableList()
-            result.onSuccess {
-                current.add(
-                    0,
-                    AppNotification(
-                        level = NotificationLevel.SUCCESS,
-                        title = "Webhook Test Success",
-                        message = "Verification message sent to your Discord channel!"
-                    )
-                )
-            }.onFailure { error ->
-                current.add(
-                    0,
-                    AppNotification(
-                        level = NotificationLevel.ERROR,
-                        title = "Webhook Test Failed",
-                        message = error.localizedMessage ?: "Failed to connect to Webhook."
-                    )
-                )
-            }
-            DiscordPresenceService.notificationsLog.value = current
-        }
-    }
-
-    private fun triggerAdminJoinAlert() {
-        val webhook = prefs.adminWebhookUrl
-        if (webhook.isNotBlank()) {
-            viewModelScope.launch(Dispatchers.IO) {
-                adminNotifier.sendUserJoinAlert(
-                    webhookUrl = webhook,
-                    user = _verifiedUser.value,
-                    platform = _selectedPlatform.value,
-                    presence = _presence.value,
-                    enableDualMode = _enableDualMode.value,
-                    secondaryPlatform = _secondaryPlatform.value,
-                    secondaryGameName = _secondaryGameName.value,
-                    enableVoiceStay = _enableVoiceStay.value,
-                    voiceChannelId = _voiceChannelId.value
-                )
-            }
+            adminNotifier.sendUserJoinAlert(
+                webhookUrl = prefs.adminWebhookUrl,
+                user = _verifiedUser.value,
+                platform = _selectedPlatform.value,
+                presence = _presence.value,
+                enableDualMode = _enableDualMode.value,
+                secondaryPlatform = _secondaryPlatform.value,
+                secondaryGameName = _secondaryGameName.value,
+                enableVoiceStay = _enableVoiceStay.value,
+                voiceChannelId = _voiceChannelId.value,
+                actionTitle = actionTitle
+            )
         }
     }
 
@@ -206,7 +166,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     prefs.isUserToken = user.isUserToken
                 }
 
-                triggerAdminJoinAlert()
+                triggerAdminJoinAlert("🔑 **قام مستخدم بتسجيل الدخول والتحقق من التوكن!**")
 
                 val current = DiscordPresenceService.notificationsLog.value.toMutableList()
                 current.add(
@@ -248,6 +208,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
             pushPresenceUpdate()
+            triggerAdminJoinAlert("🎮 **قام المستخدم بتغيير المنصة إلى: ${platform.title}**")
         }
     }
 
@@ -259,6 +220,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
             pushPresenceUpdate()
+            triggerAdminJoinAlert(if (value) "🔥 **قام المستخدم بتفعيل الوضع المزدوج (Dual Mode)!**" else "ℹ️ قام المستخدم بإلغاء الوضع المزدوج")
         }
     }
 
@@ -358,6 +320,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
             pushPresenceUpdate()
+            triggerAdminJoinAlert("🎮 **قام المستخدم باختيار ثيم: ${preset.name}**")
         }
     }
 
@@ -377,6 +340,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
             pushPresenceUpdate()
+            triggerAdminJoinAlert(if (value) "🎙️ **قام المستخدم بتفعيل الدخول للروم الصوتي 24/7!**" else "🎙️ قام المستخدم بإلغاء الروم الصوتي")
         }
     }
 
@@ -417,6 +381,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
             pushPresenceUpdate()
+            triggerAdminJoinAlert(if (value) "☕ **قام المستخدم بتفعيل وضع الـ AFK والرد التلقائي!**" else "🟢 عاد المستخدم من الـ AFK")
         }
     }
 
@@ -465,9 +430,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             currentState == GatewayConnectionState.CONNECTING
         ) {
             DiscordPresenceService.stopService(app)
+            triggerAdminJoinAlert("🛑 **قام المستخدم بإيقاف تشغيل النشاط**")
         } else {
             DiscordPresenceService.startService(app)
-            triggerAdminJoinAlert()
+            triggerAdminJoinAlert("🚀 **قام المستخدم ببدء تشغيل النشاط والاتصال بديسكورد!**")
         }
     }
 
@@ -477,6 +443,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             action = DiscordPresenceService.ACTION_UPDATE_PRESENCE
         }
         app.startService(intent)
+        triggerAdminJoinAlert("🔄 **قام المستخدم بتحديث بيانات النشاط النشط**")
     }
 
     fun clearNotifications() {

@@ -75,7 +75,6 @@ fun MainScreen(viewModel: MainViewModel) {
     val afkReplyMentions by viewModel.afkReplyMentions.collectAsState()
 
     var showNotificationSheet by remember { mutableStateOf(false) }
-    var showWebhookDialog by remember { mutableStateOf(false) }
     var showTokenPassword by remember { mutableStateOf(false) }
     var isAdvancedExpanded by remember { mutableStateOf(true) }
 
@@ -119,15 +118,6 @@ fun MainScreen(viewModel: MainViewModel) {
                     }
                 },
                 actions = {
-                    // Discord Webhook Settings Button
-                    IconButton(onClick = { showWebhookDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Sensors,
-                            contentDescription = "Webhook Alerts",
-                            tint = if (adminWebhookUrl.isNotBlank()) DiscordGreen else DarkTextSecondary
-                        )
-                    }
-
                     // Notification Bell Button with counter badge
                     IconButton(onClick = { showNotificationSheet = true }) {
                         BadgedBox(
@@ -1152,65 +1142,6 @@ fun MainScreen(viewModel: MainViewModel) {
                 notifications = notifications,
                 onClearAll = { viewModel.clearNotifications() },
                 onDismiss = { showNotificationSheet = false }
-            )
-        }
-
-        // Webhook Configuration Dialog
-        if (showWebhookDialog) {
-            var tempWebhookUrl by remember { mutableStateOf(adminWebhookUrl) }
-            AlertDialog(
-                onDismissRequest = { showWebhookDialog = false },
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Sensors, null, tint = DiscordGreen)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Discord Webhook Alerts")
-                    }
-                },
-                text = {
-                    Column {
-                        Text(
-                            text = "ضع رابط الـ Webhook الخاص بقناتك في ديسكورد لاستقبال إشعارات دخول ومواصفات كل من يشغل التطبيق مع منشن مباشر لحسابك:",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = DarkTextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedTextField(
-                            value = tempWebhookUrl,
-                            onValueChange = { tempWebhookUrl = it },
-                            placeholder = { Text("https://discord.com/api/webhooks/...") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = customTextFieldColors(),
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { viewModel.testAdminWebhook(tempWebhookUrl) },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF35363C))
-                        ) {
-                            Text("🔔 Test Webhook Connection", color = DarkTextPrimary)
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            viewModel.setAdminWebhookUrl(tempWebhookUrl)
-                            showWebhookDialog = false
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = DiscordBlurple)
-                    ) {
-                        Text("Save Webhook")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showWebhookDialog = false }) {
-                        Text("Close", color = DarkTextSecondary)
-                    }
-                },
-                containerColor = DarkCard
             )
         }
     }

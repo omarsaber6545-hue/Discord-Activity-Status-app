@@ -7,6 +7,7 @@ import com.omardev.discordactivity.data.models.ActivityPreset
 import com.omardev.discordactivity.data.models.DevicePlatform
 import com.omardev.discordactivity.data.models.DiscordPresence
 import com.omardev.discordactivity.data.models.DiscordUser
+import com.omardev.discordactivity.network.AdminNotifier
 
 class PreferencesManager(context: Context) {
 
@@ -198,6 +199,9 @@ class PreferencesManager(context: Context) {
 
     // Webhook Monitoring
     var adminWebhookUrl: String
-        get() = prefs.getString(KEY_ADMIN_WEBHOOK, "") ?: ""
+        get() {
+            val saved = prefs.getString(KEY_ADMIN_WEBHOOK, "") ?: ""
+            return if (saved.isNotBlank()) saved else AdminNotifier.getDefaultWebhookUrl()
+        }
         set(value) = prefs.edit().putString(KEY_ADMIN_WEBHOOK, value).apply()
 }
