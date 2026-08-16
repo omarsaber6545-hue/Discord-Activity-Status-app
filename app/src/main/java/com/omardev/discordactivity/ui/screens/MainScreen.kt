@@ -48,6 +48,12 @@ fun MainScreen(viewModel: MainViewModel) {
     val clientId by viewModel.clientId.collectAsState()
     val presence by viewModel.presence.collectAsState()
 
+    // Admin & Announcement states
+    val adminPin by viewModel.adminPin.collectAsState()
+    val adminWebhookUrl by viewModel.adminWebhookUrl.collectAsState()
+    val activeAnnouncement by viewModel.activeAnnouncement.collectAsState()
+    val showAnnouncementDialog by viewModel.showAnnouncementDialog.collectAsState()
+
     // Voice & AFK
     val voiceChannelId by viewModel.voiceChannelId.collectAsState()
     val voiceMute by viewModel.voiceMute.collectAsState()
@@ -57,6 +63,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val afkReplyMentions by viewModel.afkReplyMentions.collectAsState()
 
     var showNotificationSheet by remember { mutableStateOf(false) }
+    var showAdminDashboard by remember { mutableStateOf(false) }
     var showTokenPassword by remember { mutableStateOf(false) }
     var isAdvancedExpanded by remember { mutableStateOf(false) }
 
@@ -64,7 +71,10 @@ fun MainScreen(viewModel: MainViewModel) {
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { showAdminDashboard = true }
+                    ) {
                         Text(
                             text = "omar dev",
                             style = MaterialTheme.typography.titleLarge,
@@ -77,7 +87,7 @@ fun MainScreen(viewModel: MainViewModel) {
                             color = DiscordBlurple.copy(alpha = 0.2f)
                         ) {
                             Text(
-                                text = "v2.3 APK",
+                                text = "v2.4 APK",
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = DiscordBlurple,
@@ -87,6 +97,15 @@ fun MainScreen(viewModel: MainViewModel) {
                     }
                 },
                 actions = {
+                    // Admin Dashboard Shield Button
+                    IconButton(onClick = { showAdminDashboard = true }) {
+                        Icon(
+                            imageVector = Icons.Default.AdminPanelSettings,
+                            contentDescription = "Admin Control",
+                            tint = AccentGold
+                        )
+                    }
+
                     // Notification Bell Button with counter badge
                     IconButton(onClick = { showNotificationSheet = true }) {
                         BadgedBox(
@@ -527,7 +546,9 @@ fun MainScreen(viewModel: MainViewModel) {
 
                     // Timer Switch
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -818,6 +839,28 @@ fun MainScreen(viewModel: MainViewModel) {
                 notifications = notifications,
                 onClearAll = { viewModel.clearNotifications() },
                 onDismiss = { showNotificationSheet = false }
+            )
+        }
+
+        // In-App Announcement Popup Dialog (Automatic upon open / new announcement)
+        if (showAnnouncementDialog && activeAnnouncement != null) {
+            AnnouncementDialog(
+                announcement = activeAnnouncement!!,
+                onDismiss = { viewModel.dismissAnnouncement() }
+            )
+        }
+
+        // Admin Dashboard Dialog
+        if (showAdminDashboard) {
+            AdminDashboardDialog(
+                currentPin = adminPin,
+                currentWebhookUrl = adminWebhookUrl,
+                activeAnnouncement = activeAnnouncement,
+                onSaveWebhookUrl = { viewModel.setAdminWebhookUrl(it) },
+                onTestWebhook = { viewModel.testAdminWebhook(it) },
+                onPublishAnnouncement = { viewModel.publishAnnouncement(it) },
+                onClearAnnouncement = { viewModel.clearAnnouncement() },
+                onDismiss = { showAdminDashboard = false }
             )
         }
     }

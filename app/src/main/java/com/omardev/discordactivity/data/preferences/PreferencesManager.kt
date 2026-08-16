@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.google.gson.Gson
 import com.omardev.discordactivity.data.models.ActivityPreset
+import com.omardev.discordactivity.data.models.AppAnnouncement
 import com.omardev.discordactivity.data.models.DevicePlatform
 import com.omardev.discordactivity.data.models.DiscordPresence
 import com.omardev.discordactivity.data.models.DiscordUser
@@ -28,6 +29,12 @@ class PreferencesManager(context: Context) {
         private const val KEY_AFK_COOLDOWN = "afk_cooldown"
         private const val KEY_ACTIVE_PRESET = "active_preset"
         private const val KEY_CURRENT_PRESENCE = "current_presence"
+
+        // Admin & Announcement keys
+        private const val KEY_ADMIN_PIN = "admin_pin"
+        private const val KEY_ADMIN_WEBHOOK = "admin_webhook_url"
+        private const val KEY_LAST_READ_ANNOUNCEMENT = "last_read_announcement"
+        private const val KEY_ACTIVE_ANNOUNCEMENT = "active_announcement"
     }
 
     var token: String
@@ -115,5 +122,32 @@ class PreferencesManager(context: Context) {
         set(value) {
             val json = gson.toJson(value)
             prefs.edit().putString(KEY_CURRENT_PRESENCE, json).apply()
+        }
+
+    // Admin & Announcements
+    var adminPin: String
+        get() = prefs.getString(KEY_ADMIN_PIN, "2026") ?: "2026"
+        set(value) = prefs.edit().putString(KEY_ADMIN_PIN, value).apply()
+
+    var adminWebhookUrl: String
+        get() = prefs.getString(KEY_ADMIN_WEBHOOK, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_ADMIN_WEBHOOK, value).apply()
+
+    var lastReadAnnouncementId: String
+        get() = prefs.getString(KEY_LAST_READ_ANNOUNCEMENT, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_LAST_READ_ANNOUNCEMENT, value).apply()
+
+    var activeAnnouncement: AppAnnouncement?
+        get() {
+            val json = prefs.getString(KEY_ACTIVE_ANNOUNCEMENT, null) ?: return null
+            return try {
+                gson.fromJson(json, AppAnnouncement::class.java)
+            } catch (e: Exception) {
+                null
+            }
+        }
+        set(value) {
+            val json = if (value != null) gson.toJson(value) else null
+            prefs.edit().putString(KEY_ACTIVE_ANNOUNCEMENT, json).apply()
         }
 }

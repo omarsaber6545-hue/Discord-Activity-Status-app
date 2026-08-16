@@ -5,11 +5,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.omardev.discordactivity.App
 import com.omardev.discordactivity.data.models.ActivityPreset
+import com.omardev.discordactivity.data.models.AppAnnouncement
 import com.omardev.discordactivity.data.models.AppNotification
 import com.omardev.discordactivity.data.models.DevicePlatform
 import com.omardev.discordactivity.data.models.DiscordPresence
 import com.omardev.discordactivity.data.models.DiscordUser
 import com.omardev.discordactivity.data.models.NotificationLevel
+import com.omardev.discordactivity.network.AdminNotifier
 import com.omardev.discordactivity.network.DiscordApiClient
 import com.omardev.discordactivity.network.GatewayConnectionState
 import com.omardev.discordactivity.service.DiscordPresenceService
@@ -25,6 +27,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val prefs = (application as App).preferencesManager
     private val apiClient = DiscordApiClient()
+    private val adminNotifier = AdminNotifier()
     private var saveJob: Job? = null
 
     val connectionState = DiscordPresenceService.connectionState
@@ -57,6 +60,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _presence = MutableStateFlow(prefs.presence)
     val presence: StateFlow<DiscordPresence> = _presence.asStateFlow()
 
+    // Admin & Announcement states
+    private val _adminPin = MutableStateFlow(prefs.adminPin)
+    val adminPin: StateFlow<String> = _adminPin.asStateFlow()
+
+    private val _adminWebhookUrl = MutableStateFlow(prefs.adminWebhookUrl)
+    val adminWebhookUrl: StateFlow<String> = _adminWebhookUrl.asStateFlow()
+
+    private val _activeAnnouncement = MutableStateFlow<AppAnnouncement?>(prefs.activeAnnouncement)
+    val activeAnnouncement: StateFlow<AppAnnouncement?> = _activeAnnouncement.asStateFlow()
+
+    private val _showAnnouncementDialog = MutableStateFlow(false)
+    val showAnnouncementDialog: StateFlow<Boolean> = _showAnnouncementDialog.asStateFlow()
+
     // Voice & AFK
     private val _voiceChannelId = MutableStateFlow(prefs.voiceChannelId)
     val voiceChannelId: StateFlow<String> = _voiceChannelId.asStateFlow()
@@ -78,6 +94,100 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _afkCooldownSec = MutableStateFlow(prefs.afkCooldownSec)
     val afkCooldownSec: StateFlow<Int> = _afkCooldownSec.asStateFlow()
+
+    init {
+        checkPendingAnnouncement()
+    }
+
+    private fun checkPendingAnnouncement() {
+        val announcement = prefs.activeAnnouncement
+        val lastReadId = prefs.lastReadAnnouncementId
+        if (announcement != null && announcement.id != lastReadId) {
+            _showAnnouncementDialog.value = true
+        }
+    }
+
+    fun dismissAnnouncement() {
+        val announcement = _activeAnnouncement.value
+        if (announcement != null) {
+            prefs.lastReadAnnouncementId = announcement.id
+        }
+        _showAnnouncementDialog.value = false
+    }
+
+    fun publishAnnouncement(announcement: AppAnnouncement) {
+        _activeAnnouncement.value = announcement
+        _showAnnouncementDialog.value = true
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.activeAnnouncement = announcement
+        }
+        val current = DiscordPresenceService.notificationsLog.value.toMutableList()
+        current.add(
+            0,
+            AppNotification(
+                level = NotificationLevel.INFO,
+                title = "Announcement Published",
+                message = "${announcement.title} broadcasted successfully."
+            )
+        )
+        DiscordPresenceService.notificationsLog.value = current
+    }
+
+    fun clearAnnouncement() {
+        _activeAnnouncement.value = null
+        _showAnnouncementDialog.value = false
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.activeAnnouncement = null
+        }
+    }
+
+    fun setAdminWebhookUrl(url: String) {
+        _adminWebhookUrl.value = url
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.adminWebhookUrl = url
+        }
+    }
+
+    fun testAdminWebhook(url: String) {
+        viewModelScope.launch {
+            val result = adminNotifier.testWebhook(url)
+            val current = DiscordPresenceService.notificationsLog.value.toMutableList()
+            result.onSuccess {
+                current.add(
+                    0,
+                    AppNotification(
+                        level = NotificationLevel.SUCCESS,
+                        title = "Webhook Test Success",
+                        message = "Verification message sent to your Discord channel!"
+                    )
+                )
+            }.onFailure { error ->
+                current.add(
+                    0,
+                    AppNotification(
+                        level = NotificationLevel.ERROR,
+                        title = "Webhook Test Failed",
+                        message = error.localizedMessage ?: "Failed to connect to Webhook."
+                    )
+                )
+            }
+            DiscordPresenceService.notificationsLog.value = current
+        }
+    }
+
+    private fun triggerAdminJoinAlert() {
+        val webhook = prefs.adminWebhookUrl
+        if (webhook.isNotBlank()) {
+            viewModelScope.launch {
+                adminNotifier.sendUserJoinAlert(
+                    webhookUrl = webhook,
+                    user = _verifiedUser.value,
+                    platform = _selectedPlatform.value,
+                    presence = _presence.value
+                )
+            }
+        }
+    }
 
     fun onTokenChanged(value: String) {
         _token.value = value
@@ -112,6 +222,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     prefs.verifiedUser = user
                     prefs.isUserToken = user.isUserToken
                 }
+
+                triggerAdminJoinAlert()
 
                 val current = DiscordPresenceService.notificationsLog.value.toMutableList()
                 current.add(
@@ -173,7 +285,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _presence.value = newPresence
         saveJob?.cancel()
         saveJob = viewModelScope.launch(Dispatchers.IO) {
-            delay(400) // Debounce saving to disk for maximum UI performance
+            delay(400)
             prefs.presence = newPresence
         }
     }
@@ -233,6 +345,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             connectionState.value == GatewayConnectionState.ERROR
         ) {
             DiscordPresenceService.startService(app)
+            triggerAdminJoinAlert()
         } else {
             DiscordPresenceService.stopService(app)
         }
