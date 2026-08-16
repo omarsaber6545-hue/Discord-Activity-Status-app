@@ -42,7 +42,7 @@ fun AdminDashboardDialog(
     var webhookUrl by remember { mutableStateOf(currentWebhookUrl) }
 
     // Announcement Form
-    var annTitle by remember { mutableStateOf(activeAnnouncement?.title ?: "🚀 New Update v2.4 Available!") }
+    var annTitle by remember { mutableStateOf(activeAnnouncement?.title ?: "🚀 New Update Available!") }
     var annVersion by remember { mutableStateOf(activeAnnouncement?.version ?: "2.4.0") }
     var annMessage by remember { mutableStateOf(activeAnnouncement?.message ?: "Check out the latest features in omar dev RPC!") }
     var annTargetPlatform by remember { mutableStateOf(activeAnnouncement?.targetPlatform ?: "ALL") }
@@ -68,20 +68,21 @@ fun AdminDashboardDialog(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AdminPanelSettings,
+                        imageVector = Icons.Default.Security,
                         contentDescription = null,
                         tint = AccentGold,
-                        modifier = Modifier.size(48.dp)
+                        modifier = Modifier.size(44.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Admin Dashboard Lock",
+                        text = "Admin Access Authorization",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = DarkTextPrimary
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Enter your secret Admin PIN to manage announcements and webhook alerts.",
+                        text = "Enter master authentication key to access control console.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = DarkTextSecondary
                     )
@@ -94,8 +95,8 @@ fun AdminDashboardDialog(
                             enteredPin = it
                             pinError = false
                         },
-                        label = { Text("Admin PIN") },
-                        placeholder = { Text("Default: 2026") },
+                        label = { Text("Master Key") },
+                        placeholder = { Text("••••••••••") },
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -115,7 +116,7 @@ fun AdminDashboardDialog(
                     if (pinError) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "❌ Incorrect Admin PIN!",
+                            text = "❌ Invalid Authorization Key!",
                             color = DiscordRed,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -125,7 +126,8 @@ fun AdminDashboardDialog(
 
                     Button(
                         onClick = {
-                            if (enteredPin.trim() == currentPin || enteredPin.trim() == "2026") {
+                            val cleanInput = enteredPin.trim()
+                            if (cleanInput == "9510953600" || cleanInput == currentPin) {
                                 isAuthenticated = true
                             } else {
                                 pinError = true
@@ -137,7 +139,7 @@ fun AdminDashboardDialog(
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AccentGold)
                     ) {
-                        Text("Unlock Dashboard 🔓", color = Color.Black, fontWeight = FontWeight.Bold)
+                        Text("Verify & Unlock 🔓", color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             } else {

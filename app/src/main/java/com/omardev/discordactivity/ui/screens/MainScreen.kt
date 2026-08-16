@@ -74,7 +74,9 @@ fun MainScreen(viewModel: MainViewModel) {
                 title = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { showAdminDashboard = true }
+                        modifier = Modifier.clickable {
+                            showAdminDashboard = true
+                        }
                     ) {
                         Text(
                             text = "omar dev",
@@ -98,16 +100,7 @@ fun MainScreen(viewModel: MainViewModel) {
                     }
                 },
                 actions = {
-                    // Admin Dashboard Shield Button
-                    IconButton(onClick = { showAdminDashboard = true }) {
-                        Icon(
-                            imageVector = Icons.Default.AdminPanelSettings,
-                            contentDescription = "Admin Control",
-                            tint = AccentGold
-                        )
-                    }
-
-                    // Notification Bell Button with counter badge
+                    // Notification Bell Button with counter badge (Clean top bar without visible admin icons)
                     IconButton(onClick = { showNotificationSheet = true }) {
                         BadgedBox(
                             badge = {

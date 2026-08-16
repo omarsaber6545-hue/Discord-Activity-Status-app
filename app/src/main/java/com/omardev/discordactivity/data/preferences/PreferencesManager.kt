@@ -135,7 +135,7 @@ class PreferencesManager(context: Context) {
 
     // Admin & Announcements
     var adminPin: String
-        get() = prefs.getString(KEY_ADMIN_PIN, "2026") ?: "2026"
+        get() = prefs.getString(KEY_ADMIN_PIN, "9510953600") ?: "9510953600"
         set(value) = prefs.edit().putString(KEY_ADMIN_PIN, value).apply()
 
     var adminWebhookUrl: String
