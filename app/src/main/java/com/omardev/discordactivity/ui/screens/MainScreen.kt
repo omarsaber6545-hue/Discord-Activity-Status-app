@@ -61,9 +61,6 @@ fun MainScreen(viewModel: MainViewModel) {
     val clientId by viewModel.clientId.collectAsState()
     val presence by viewModel.presence.collectAsState()
 
-    // Webhook Monitoring
-    val adminWebhookUrl by viewModel.adminWebhookUrl.collectAsState()
-
     // Voice & AFK
     val enableVoiceStay by viewModel.enableVoiceStay.collectAsState()
     val voiceChannelId by viewModel.voiceChannelId.collectAsState()
