@@ -1,7 +1,6 @@
 package com.omardev.discordactivity.network
 
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.omardev.discordactivity.data.models.AppNotification
 import com.omardev.discordactivity.data.models.DevicePlatform
@@ -48,7 +47,7 @@ class DiscordGatewayClient(
         .build()
 
     private val apiClient = DiscordApiClient()
-    private val gson: Gson = GsonBuilder().serializeNulls().create()
+    private val gson = Gson() // Standard Gson omits null fields, which Discord Gateway strictly requires!
     private var webSocket: WebSocket? = null
     private var scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var heartbeatJob: Job? = null
@@ -101,7 +100,7 @@ class DiscordGatewayClient(
         isManualDisconnect = true
         heartbeatJob?.cancel()
 
-        // 1. Leave Voice Channel if currently joined
+        // 1. Leave Voice Channel if joined
         if (isCurrentlyInVoice && currentVoiceGuildId != null) {
             try {
                 sendVoiceStateUpdate(guildId = currentVoiceGuildId, channelId = null, selfMute = false, selfDeaf = false)
@@ -118,7 +117,7 @@ class DiscordGatewayClient(
                 status = "invisible",
                 afk = true
             )
-            val payload = GatewayPayload(
+            val payload = GatewaySendPayload(
                 op = GatewayOpCodes.PRESENCE_UPDATE,
                 d = clearPresence
             )
@@ -324,7 +323,7 @@ class DiscordGatewayClient(
                     AppNotification(
                         level = NotificationLevel.WARNING,
                         title = "Voice Channel Info",
-                        message = "Could not fetch Server ID for channel $cleanChannel. Please verify channel ID."
+                        message = "Could not fetch Server ID for channel $cleanChannel. Please check Channel ID."
                     )
                 )
             }
@@ -338,7 +337,7 @@ class DiscordGatewayClient(
             selfMute = selfMute,
             selfDeaf = selfDeaf
         )
-        val payload = GatewayPayload(
+        val payload = GatewaySendPayload(
             op = GatewayOpCodes.VOICE_STATE_UPDATE,
             d = voiceData
         )
@@ -464,6 +463,13 @@ class DiscordGatewayClient(
 
     override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
         connectionState = GatewayConnectionState.DISCONNECTED
+        onLog(
+            AppNotification(
+                level = NotificationLevel.WARNING,
+                title = "Gateway Closed",
+                message = "Session closed (Code $code: $reason)"
+            )
+        )
         if (!isManualDisconnect) {
             scheduleReconnect()
         }
@@ -472,15 +478,18 @@ class DiscordGatewayClient(
     private fun startHeartbeat(intervalMs: Long) {
         heartbeatJob?.cancel()
         heartbeatJob = scope.launch {
+            // First heartbeat jitter as recommended by Discord Gateway docs
+            delay((intervalMs * 0.5).toLong())
             while (isActive) {
-                delay((intervalMs * 0.9).toLong())
                 sendHeartbeat()
+                delay(intervalMs)
             }
         }
     }
 
     private fun sendHeartbeat() {
-        val payload = "{\"op\":1,\"d\":${lastSequence ?: "null"}}"
+        val seq = lastSequence
+        val payload = if (seq != null) "{\"op\":1,\"d\":$seq}" else "{\"op\":1,\"d\":null}"
         webSocket?.send(payload)
     }
 
@@ -575,7 +584,7 @@ class DiscordGatewayClient(
             intents = if (isBot) 3276799 else null
         )
 
-        val payload = GatewayPayload(
+        val payload = GatewaySendPayload(
             op = GatewayOpCodes.IDENTIFY,
             d = identifyData
         )
@@ -593,7 +602,7 @@ class DiscordGatewayClient(
             afk = enableAfk
         )
 
-        val payload = GatewayPayload(
+        val payload = GatewaySendPayload(
             op = GatewayOpCodes.PRESENCE_UPDATE,
             d = updateData
         )

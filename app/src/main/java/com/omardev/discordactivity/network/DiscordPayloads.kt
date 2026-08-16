@@ -16,15 +16,9 @@ object GatewayOpCodes {
     const val HEARTBEAT_ACK = 11
 }
 
-data class GatewayPayload<T>(
+data class GatewaySendPayload<T>(
     @SerializedName("op") val op: Int,
-    @SerializedName("d") val d: T? = null,
-    @SerializedName("s") val s: Int? = null,
-    @SerializedName("t") val t: String? = null
-)
-
-data class HelloData(
-    @SerializedName("heartbeat_interval") val heartbeatInterval: Long
+    @SerializedName("d") val d: T
 )
 
 data class IdentifyProperties(
@@ -53,7 +47,6 @@ data class ActivityTimestamps(
 data class ActivityData(
     @SerializedName("name") val name: String,
     @SerializedName("type") val type: Int = 0,
-    @SerializedName("application_id") val applicationId: String? = null,
     @SerializedName("details") val details: String? = null,
     @SerializedName("state") val state: String? = null,
     @SerializedName("platform") val platform: String? = null,
@@ -62,7 +55,7 @@ data class ActivityData(
     @SerializedName("assets") val assets: ActivityAssets? = null,
     @SerializedName("buttons") val buttons: List<String>? = null,
     @SerializedName("metadata") val metadata: ActivityMetadata? = null,
-    @SerializedName("url") val url: String? = null
+    @SerializedName("application_id") val applicationId: String? = null
 )
 
 data class PresenceUpdateData(
