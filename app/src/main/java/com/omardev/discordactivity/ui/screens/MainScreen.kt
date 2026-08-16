@@ -41,6 +41,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val presets by viewModel.presets.collectAsState()
     val selectedPresetName by viewModel.selectedPresetName.collectAsState()
     val selectedPlatform by viewModel.selectedPlatform.collectAsState()
+    val enableVrOverlay by viewModel.enableVrOverlay.collectAsState()
     val token by viewModel.token.collectAsState()
     val verifiedUser by viewModel.verifiedUser.collectAsState()
     val isVerifying by viewModel.isVerifying.collectAsState()
@@ -172,13 +173,60 @@ fun MainScreen(viewModel: MainViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Platform & Spoofer Selector (PS5 / Xbox / VR / Mobile)
-            DevicePlatformSelector(
-                selectedPlatform = selectedPlatform,
-                onPlatformSelected = { platform ->
-                    viewModel.onPlatformSelected(platform)
+            // 3. Platform & Spoofer Selector with Independent VR Overlay Switch
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = DarkCard)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "DEVICE & CONSOLE SPOOFER 🎮",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = DarkTextSecondary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    DevicePlatformSelector(
+                        selectedPlatform = selectedPlatform,
+                        onPlatformSelected = { platform ->
+                            viewModel.onPlatformSelected(platform)
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Divider(color = DarkCardBorder)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Independent VR Overlay Toggle (Enables VR simultaneously with PS5 / Xbox)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "🥽 Meta Quest 3 VR Mode",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (enableVrOverlay) AccentCyan else DarkTextPrimary
+                            )
+                            Text(
+                                text = "Keep VR active simultaneously with PS5 / Xbox",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DarkTextMuted,
+                                fontSize = 11.sp
+                            )
+                        }
+                        Switch(
+                            checked = enableVrOverlay,
+                            onCheckedChange = { viewModel.onEnableVrOverlayChanged(it) },
+                            colors = customSwitchColors()
+                        )
+                    }
                 }
-            )
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 

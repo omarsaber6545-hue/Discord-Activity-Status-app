@@ -20,6 +20,7 @@ class PreferencesManager(context: Context) {
         private const val KEY_VERIFIED_USER = "verified_user"
         private const val KEY_CLIENT_ID = "client_id"
         private const val KEY_DEVICE_PLATFORM = "device_platform"
+        private const val KEY_ENABLE_VR_OVERLAY = "enable_vr_overlay"
         private const val KEY_VOICE_CHANNEL_ID = "voice_channel_id"
         private const val KEY_VOICE_MUTE = "voice_mute"
         private const val KEY_VOICE_DEAF = "voice_deaf"
@@ -69,14 +70,20 @@ class PreferencesManager(context: Context) {
 
     var devicePlatform: DevicePlatform
         get() {
-            val name = prefs.getString(KEY_DEVICE_PLATFORM, DevicePlatform.VR.name) ?: DevicePlatform.VR.name
+            val name = prefs.getString(KEY_DEVICE_PLATFORM, DevicePlatform.PS5.name) ?: DevicePlatform.PS5.name
             return try {
                 DevicePlatform.valueOf(name)
             } catch (e: Exception) {
-                DevicePlatform.VR
+                DevicePlatform.PS5
             }
         }
-        set(value) = prefs.edit().putString(KEY_DEVICE_PLATFORM, value.name).apply()
+        set(value) {
+            prefs.edit().putString(KEY_DEVICE_PLATFORM, value.name).apply()
+        }
+
+    var enableVrOverlay: Boolean
+        get() = prefs.getBoolean(KEY_ENABLE_VR_OVERLAY, true)
+        set(value) = prefs.edit().putBoolean(KEY_ENABLE_VR_OVERLAY, value).apply()
 
     var voiceChannelId: String
         get() = prefs.getString(KEY_VOICE_CHANNEL_ID, "") ?: ""

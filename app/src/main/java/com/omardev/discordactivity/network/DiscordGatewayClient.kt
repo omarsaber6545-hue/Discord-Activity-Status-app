@@ -26,6 +26,7 @@ class DiscordGatewayClient(
     private val isUserToken: Boolean = false,
     private val clientId: String = "1536494151074586624",
     private var platform: DevicePlatform,
+    private var enableVrOverlay: Boolean = true,
     private var currentPresence: DiscordPresence,
     private val voiceChannelId: String = "",
     private val voiceMute: Boolean = true,
@@ -40,8 +41,8 @@ class DiscordGatewayClient(
 ) : WebSocketListener() {
 
     private val client = OkHttpClient.Builder()
-        .readTimeout(30, TimeUnit.SECONDS)
-        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
         .pingInterval(20, TimeUnit.SECONDS)
         .build()
 
@@ -81,7 +82,7 @@ class DiscordGatewayClient(
             AppNotification(
                 level = NotificationLevel.INFO,
                 title = "Gateway Connection",
-                message = "Connecting to Discord Gateway with signature: ${platform.title} (${platform.osName})..."
+                message = "Connecting instantly to Discord (${platform.title}${if (enableVrOverlay) " + VR 🥽" else ""})..."
             )
         )
 
@@ -95,14 +96,32 @@ class DiscordGatewayClient(
     fun disconnect() {
         isManualDisconnect = true
         heartbeatJob?.cancel()
-        webSocket?.close(1000, "Client closed")
+
+        // 1. Immediately send clear presence packet so Discord servers strip status instantly
+        try {
+            val clearPresence = PresenceUpdateData(
+                since = null,
+                activities = emptyList(),
+                status = "invisible",
+                afk = true
+            )
+            val payload = GatewayPayload(
+                op = GatewayOpCodes.PRESENCE_UPDATE,
+                d = clearPresence
+            )
+            webSocket?.send(gson.toJson(payload))
+        } catch (e: Exception) {
+            // Ignore
+        }
+
+        webSocket?.close(1000, "Client stopped")
         webSocket = null
         connectionState = GatewayConnectionState.DISCONNECTED
         onLog(
             AppNotification(
                 level = NotificationLevel.INFO,
-                title = "Disconnected",
-                message = "Gateway disconnected safely."
+                title = "Stopped & Cleared",
+                message = "Presence stopped and status cleared instantly."
             )
         )
     }
@@ -110,6 +129,7 @@ class DiscordGatewayClient(
     fun updatePresence(
         newPresence: DiscordPresence,
         newPlatform: DevicePlatform? = null,
+        enableVrOverlay: Boolean = this.enableVrOverlay,
         enableAfk: Boolean = this.enableAfk,
         afkMessage: String = this.afkMessage,
         afkReplyDms: Boolean = this.afkReplyDms,
@@ -117,7 +137,10 @@ class DiscordGatewayClient(
         afkCooldownSec: Int = this.afkCooldownSec
     ) {
         val platformChanged = newPlatform != null && newPlatform != this.platform
+        val vrChanged = enableVrOverlay != this.enableVrOverlay
+
         this.currentPresence = newPresence
+        this.enableVrOverlay = enableVrOverlay
         this.enableAfk = enableAfk
         this.afkMessage = afkMessage
         this.afkReplyDms = afkReplyDms
@@ -129,12 +152,12 @@ class DiscordGatewayClient(
         }
 
         if (connectionState == GatewayConnectionState.IDENTIFIED) {
-            if (platformChanged) {
+            if (platformChanged || vrChanged) {
                 onLog(
                     AppNotification(
                         level = NotificationLevel.INFO,
                         title = "Platform Switched",
-                        message = "Reconnecting Gateway to apply ${platform.title} hardware signature..."
+                        message = "Reconnecting Gateway to apply ${platform.title}${if (enableVrOverlay) " + Quest 3 VR" else ""} signature..."
                     )
                 )
                 reconnect()
@@ -194,7 +217,7 @@ class DiscordGatewayClient(
                             AppNotification(
                                 level = NotificationLevel.SUCCESS,
                                 title = "Logged in Successfully",
-                                message = "Active as $myUsername with ${platform.title} 🎮"
+                                message = "Active as $myUsername with ${platform.title}${if (enableVrOverlay) " + VR 🥽" else ""} 🎮"
                             )
                         )
                     } else if (eventType == "MESSAGE_CREATE" && data != null) {
@@ -376,7 +399,7 @@ class DiscordGatewayClient(
         webSocket?.send(gson.toJson(payload))
     }
 
-    private fun buildActivityData(presence: DiscordPresence): ActivityData {
+    private fun buildActivityList(presence: DiscordPresence): List<ActivityData> {
         val details = if (presence.enableDetails && presence.details.isNotBlank()) presence.details.trim() else null
         val state = if (presence.enableState && presence.state.isNotBlank()) presence.state.trim() else null
         val timestamps = if (presence.showTimer) ActivityTimestamps(start = presence.startTimestamp) else null
@@ -420,19 +443,39 @@ class DiscordGatewayClient(
 
         val appId = clientId.trim().ifBlank { "1536494151074586624" }
 
-        return ActivityData(
+        val mainActivity = ActivityData(
             name = presence.gameName.ifBlank { platform.title }.trim(),
             type = 0,
             applicationId = appId,
             details = details,
             state = state,
             platform = platform.platformKey,
-            flags = if (platform.flags > 0) platform.flags else null,
+            flags = if (enableVrOverlay || platform.flags > 0) 1 else null,
             timestamps = timestamps,
             assets = assets,
             buttons = buttonLabels.ifEmpty { null },
             metadata = metadata
         )
+
+        val list = mutableListOf(mainActivity)
+
+        // If VR overlay is enabled and platform is not already VR, add secondary Quest 3 VR Activity
+        if (enableVrOverlay && platform != DevicePlatform.VR) {
+            list.add(
+                ActivityData(
+                    name = "Meta Quest 3 🥽",
+                    type = 0,
+                    applicationId = appId,
+                    details = "Virtual Reality Active",
+                    state = "Quest 3 VR Mode",
+                    platform = "vr",
+                    flags = 1,
+                    timestamps = timestamps
+                )
+            )
+        }
+
+        return list
     }
 
     private fun sendIdentify() {
@@ -443,7 +486,7 @@ class DiscordGatewayClient(
             if (cleanToken.startsWith("Bot ")) cleanToken else "Bot $cleanToken"
         }
 
-        val activity = buildActivityData(currentPresence)
+        val activities = buildActivityList(currentPresence)
 
         val identifyData = IdentifyData(
             token = authHeaderToken,
@@ -456,7 +499,7 @@ class DiscordGatewayClient(
             ),
             presence = PresenceUpdateData(
                 since = currentPresence.startTimestamp,
-                activities = listOf(activity),
+                activities = activities,
                 status = if (enableAfk) "idle" else "online",
                 afk = enableAfk
             ),
@@ -472,11 +515,11 @@ class DiscordGatewayClient(
     }
 
     private fun sendPresenceUpdate(presence: DiscordPresence) {
-        val activity = buildActivityData(presence)
+        val activities = buildActivityList(presence)
 
         val updateData = PresenceUpdateData(
             since = presence.startTimestamp,
-            activities = listOf(activity),
+            activities = activities,
             status = if (enableAfk) "idle" else "online",
             afk = enableAfk
         )
@@ -491,13 +534,13 @@ class DiscordGatewayClient(
 
     private fun scheduleReconnect() {
         scope.launch {
-            delay(5000)
+            delay(3000)
             if (!isManualDisconnect && connectionState != GatewayConnectionState.IDENTIFIED) {
                 onLog(
                     AppNotification(
                         level = NotificationLevel.INFO,
                         title = "Auto-Reconnecting",
-                        message = "Attempting to reconnect to Gateway in 5 seconds..."
+                        message = "Attempting to reconnect to Gateway in 3 seconds..."
                     )
                 )
                 connect()

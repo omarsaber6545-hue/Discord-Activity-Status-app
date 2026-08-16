@@ -80,6 +80,7 @@ class DiscordPresenceService : Service() {
                 gatewayClient?.updatePresence(
                     newPresence = prefs.presence,
                     newPlatform = prefs.devicePlatform,
+                    enableVrOverlay = prefs.enableVrOverlay,
                     enableAfk = prefs.enableAfk,
                     afkMessage = prefs.afkMessage,
                     afkReplyDms = prefs.afkReplyDms,
@@ -99,6 +100,7 @@ class DiscordPresenceService : Service() {
         val isUserToken = prefs.isUserToken
         val clientId = prefs.clientId
         val platform = prefs.devicePlatform
+        val enableVr = prefs.enableVrOverlay
         val presence = prefs.presence
 
         gatewayClient?.disconnect()
@@ -107,6 +109,7 @@ class DiscordPresenceService : Service() {
             isUserToken = isUserToken,
             clientId = clientId,
             platform = platform,
+            enableVrOverlay = enableVr,
             currentPresence = presence,
             voiceChannelId = prefs.voiceChannelId,
             voiceMute = prefs.voiceMute,

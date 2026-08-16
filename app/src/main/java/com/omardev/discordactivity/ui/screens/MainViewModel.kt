@@ -42,6 +42,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedPlatform = MutableStateFlow(prefs.devicePlatform)
     val selectedPlatform: StateFlow<DevicePlatform> = _selectedPlatform.asStateFlow()
 
+    private val _enableVrOverlay = MutableStateFlow(prefs.enableVrOverlay)
+    val enableVrOverlay: StateFlow<Boolean> = _enableVrOverlay.asStateFlow()
+
     private val _token = MutableStateFlow(prefs.token)
     val token: StateFlow<String> = _token.asStateFlow()
 
@@ -181,7 +184,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private fun triggerAdminJoinAlert() {
         val webhook = prefs.adminWebhookUrl
         if (webhook.isNotBlank()) {
-            viewModelScope.launch {
+            viewModelScope.launch(Dispatchers.IO) {
                 adminNotifier.sendUserJoinAlert(
                     webhookUrl = webhook,
                     user = _verifiedUser.value,
@@ -259,15 +262,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             prefs.clientId = value
         }
-        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
-            pushPresenceUpdate()
-        }
     }
 
     fun onPlatformSelected(platform: DevicePlatform) {
         _selectedPlatform.value = platform
         viewModelScope.launch(Dispatchers.IO) {
             prefs.devicePlatform = platform
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
+            pushPresenceUpdate()
+        }
+    }
+
+    fun onEnableVrOverlayChanged(value: Boolean) {
+        _enableVrOverlay.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.enableVrOverlay = value
         }
         if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
             pushPresenceUpdate()
