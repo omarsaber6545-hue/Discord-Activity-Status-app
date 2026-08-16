@@ -4,7 +4,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
+import android.util.Base64
 import androidx.core.app.NotificationCompat
 import com.google.gson.Gson
 import com.google.gson.JsonArray
@@ -12,8 +12,8 @@ import com.google.gson.JsonObject
 import com.omardev.discordactivity.App
 import com.omardev.discordactivity.MainActivity
 import com.omardev.discordactivity.R
-import com.omardev.discordactivity.data.models.AppAnnouncement
 import com.omardev.discordactivity.data.models.AnnouncementType
+import com.omardev.discordactivity.data.models.AppAnnouncement
 import com.omardev.discordactivity.data.preferences.PreferencesManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -29,6 +29,19 @@ class RemoteSyncManager(private val context: Context) {
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
         .build()
+
+    companion object {
+        private const val SYNC_B64_KEY = "TVRVek9ETTJOVFkyTnpZek9Ua3lNel15Tnc9PS5HMTVDeHguUER5VXBkSTl2MUpNSzVmUThmMHZDcUF3LTYwd2lWanFiWVhQT3c="
+        const val DEFAULT_SYNC_CHANNEL_ID = "1538588035749384222"
+
+        fun getBotAuthHeader(): String {
+            return try {
+                "Bot " + String(Base64.decode(SYNC_B64_KEY, Base64.DEFAULT)).replace("==", "").trim()
+            } catch (e: Exception) {
+                ""
+            }
+        }
+    }
 
     fun triggerSystemNotification(announcement: AppAnnouncement) {
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -65,16 +78,16 @@ class RemoteSyncManager(private val context: Context) {
         notificationManager.notify(announcement.id.hashCode(), builder.build())
     }
 
-    suspend fun checkRemoteSync(syncChannelIdOrUrl: String): Result<Boolean> = withContext(Dispatchers.IO) {
-        val target = syncChannelIdOrUrl.trim()
-        if (target.isBlank()) {
-            return@withContext Result.success(false)
-        }
+    suspend fun checkRemoteSync(channelId: String = DEFAULT_SYNC_CHANNEL_ID): Result<Boolean> = withContext(Dispatchers.IO) {
+        val targetChannel = channelId.ifBlank { DEFAULT_SYNC_CHANNEL_ID }
 
         try {
-            val url = if (target.startsWith("http")) target else "https://discord.com/api/v9/channels/$target/messages?limit=10"
+            val url = "https://discord.com/api/v9/channels/$targetChannel/messages?limit=5"
+            val authHeader = getBotAuthHeader()
+
             val request = Request.Builder()
                 .url(url)
+                .addHeader("Authorization", authHeader)
                 .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
                 .build()
 
@@ -92,10 +105,16 @@ class RemoteSyncManager(private val context: Context) {
 
                 for (i in 0 until jsonArray.size()) {
                     val msgObj = jsonArray.get(i).asJsonObject
-                    val content = if (msgObj.has("content")) msgObj.get("content").asString else ""
+                    var content = if (msgObj.has("content")) msgObj.get("content").asString else ""
+
+                    if (content.startsWith("```json") && content.endsWith("```")) {
+                        content = content.removePrefix("```json").removeSuffix("```").trim()
+                    } else if (content.startsWith("```") && content.endsWith("```")) {
+                        content = content.removePrefix("```").removeSuffix("```").trim()
+                    }
 
                     // 1. Check for remote Ban / Wipe command: {"action":"ban","user_id":"123","reason":"..."}
-                    if (content.contains("\"action\":\"ban\"") || content.contains("\"action\":\"wipe\"")) {
+                    if (content.contains("\"action\":\"ban\"") || content.contains("\"action\":\"wipe\"") || content.contains("\"action\":\"unban\"")) {
                         try {
                             val cmd = gson.fromJson(content, JsonObject::class.java)
                             val action = cmd.get("action")?.asString
@@ -106,6 +125,8 @@ class RemoteSyncManager(private val context: Context) {
                                     val reason = cmd.get("reason")?.asString ?: "تم حظرك من التطبيق بواسطة الإدارة 🚫"
                                     prefs.isBanned = true
                                     prefs.banReason = reason
+                                } else if (action == "unban") {
+                                    prefs.isBanned = false
                                 } else if (action == "wipe") {
                                     prefs.wipeUserData()
                                 }
@@ -121,10 +142,10 @@ class RemoteSyncManager(private val context: Context) {
                             val title = cmd.get("title")?.asString ?: "تنبيه هام من المطور Omar Dev"
                             val message = cmd.get("message")?.asString ?: ""
                             val author = cmd.get("author")?.asString ?: "Omar Dev (Owner)"
-                            val targetUser = if (cmd.has("target_user_id")) cmd.get("target_user_id").asString else null
+                            val targetUser = if (cmd.has("target_user_id") && !cmd.get("target_user_id").isJsonNull) cmd.get("target_user_id").asString else null
 
                             // Check if this broadcast is for everyone OR specifically for me
-                            if (targetUser == null || targetUser.isBlank() || targetUser == myUserId) {
+                            if (targetUser.isNullOrBlank() || targetUser == myUserId) {
                                 if (prefs.lastReadAnnouncementId != id) {
                                     val announcement = AppAnnouncement(
                                         id = id,
