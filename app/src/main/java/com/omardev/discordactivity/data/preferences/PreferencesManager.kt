@@ -23,10 +23,14 @@ class PreferencesManager(context: Context) {
         private const val KEY_VOICE_CHANNEL_ID = "voice_channel_id"
         private const val KEY_VOICE_MUTE = "voice_mute"
         private const val KEY_VOICE_DEAF = "voice_deaf"
+
+        // AFK
+        private const val KEY_ENABLE_AFK = "enable_afk"
         private const val KEY_AFK_MESSAGE = "afk_message"
         private const val KEY_AFK_REPLY_DMS = "afk_reply_dms"
         private const val KEY_AFK_REPLY_MENTIONS = "afk_reply_mentions"
         private const val KEY_AFK_COOLDOWN = "afk_cooldown"
+
         private const val KEY_ACTIVE_PRESET = "active_preset"
         private const val KEY_CURRENT_PRESENCE = "current_presence"
 
@@ -86,8 +90,13 @@ class PreferencesManager(context: Context) {
         get() = prefs.getBoolean(KEY_VOICE_DEAF, true)
         set(value) = prefs.edit().putBoolean(KEY_VOICE_DEAF, value).apply()
 
+    // AFK System
+    var enableAfk: Boolean
+        get() = prefs.getBoolean(KEY_ENABLE_AFK, false)
+        set(value) = prefs.edit().putBoolean(KEY_ENABLE_AFK, value).apply()
+
     var afkMessage: String
-        get() = prefs.getString(KEY_AFK_MESSAGE, "انا قافل شويه عشان تعبان لما هفتح هرد عليك (رد تلقائي)") ?: ""
+        get() = prefs.getString(KEY_AFK_MESSAGE, "انا غير متواجد حالياً، سأقوم بالرد عليك فور عودتي! ☕ (رد تلقائي)") ?: ""
         set(value) = prefs.edit().putString(KEY_AFK_MESSAGE, value).apply()
 
     var afkReplyDms: Boolean

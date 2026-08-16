@@ -83,6 +83,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _voiceDeaf = MutableStateFlow(prefs.voiceDeaf)
     val voiceDeaf: StateFlow<Boolean> = _voiceDeaf.asStateFlow()
 
+    private val _enableAfk = MutableStateFlow(prefs.enableAfk)
+    val enableAfk: StateFlow<Boolean> = _enableAfk.asStateFlow()
+
     private val _afkMessage = MutableStateFlow(prefs.afkMessage)
     val afkMessage: StateFlow<String> = _afkMessage.asStateFlow()
 
@@ -256,6 +259,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             prefs.clientId = value
         }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
+            pushPresenceUpdate()
+        }
     }
 
     fun onPlatformSelected(platform: DevicePlatform) {
@@ -311,10 +317,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun onEnableAfkChanged(value: Boolean) {
+        _enableAfk.value = value
+        viewModelScope.launch(Dispatchers.IO) {
+            prefs.enableAfk = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED) {
+            pushPresenceUpdate()
+        }
+    }
+
     fun onAfkMessageChanged(value: String) {
         _afkMessage.value = value
         viewModelScope.launch(Dispatchers.IO) {
             prefs.afkMessage = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableAfk.value) {
+            pushPresenceUpdate()
         }
     }
 
@@ -323,12 +342,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             prefs.afkReplyDms = value
         }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableAfk.value) {
+            pushPresenceUpdate()
+        }
     }
 
     fun onAfkReplyMentionsChanged(value: Boolean) {
         _afkReplyMentions.value = value
         viewModelScope.launch(Dispatchers.IO) {
             prefs.afkReplyMentions = value
+        }
+        if (connectionState.value == GatewayConnectionState.IDENTIFIED && _enableAfk.value) {
+            pushPresenceUpdate()
         }
     }
 

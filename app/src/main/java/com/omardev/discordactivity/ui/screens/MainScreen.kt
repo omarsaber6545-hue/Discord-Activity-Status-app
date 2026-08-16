@@ -58,6 +58,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val voiceChannelId by viewModel.voiceChannelId.collectAsState()
     val voiceMute by viewModel.voiceMute.collectAsState()
     val voiceDeaf by viewModel.voiceDeaf.collectAsState()
+    val enableAfk by viewModel.enableAfk.collectAsState()
     val afkMessage by viewModel.afkMessage.collectAsState()
     val afkReplyDms by viewModel.afkReplyDms.collectAsState()
     val afkReplyMentions by viewModel.afkReplyMentions.collectAsState()
@@ -65,7 +66,7 @@ fun MainScreen(viewModel: MainViewModel) {
     var showNotificationSheet by remember { mutableStateOf(false) }
     var showAdminDashboard by remember { mutableStateOf(false) }
     var showTokenPassword by remember { mutableStateOf(false) }
-    var isAdvancedExpanded by remember { mutableStateOf(false) }
+    var isAdvancedExpanded by remember { mutableStateOf(true) }
 
     Scaffold(
         topBar = {
@@ -481,7 +482,8 @@ fun MainScreen(viewModel: MainViewModel) {
                         OutlinedTextField(
                             value = presence.largeImage,
                             onValueChange = { viewModel.updatePresenceData(presence.copy(largeImage = it)) },
-                            label = { Text("Large Image URL / Asset Key") },
+                            label = { Text("Large Image URL (Discord CDN / PNG / JPG / WEBP)") },
+                            placeholder = { Text("https://cdn.discordapp.com/attachments/...") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             colors = customTextFieldColors(),
@@ -524,7 +526,8 @@ fun MainScreen(viewModel: MainViewModel) {
                         OutlinedTextField(
                             value = presence.smallImage,
                             onValueChange = { viewModel.updatePresenceData(presence.copy(smallImage = it)) },
-                            label = { Text("Small Image URL / Key") },
+                            label = { Text("Small Image URL (Discord CDN / PNG / JPG)") },
+                            placeholder = { Text("https://cdn.discordapp.com/attachments/...") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
                             colors = customTextFieldColors(),
@@ -700,6 +703,15 @@ fun MainScreen(viewModel: MainViewModel) {
 
                     AnimatedVisibility(visible = isAdvancedExpanded) {
                         Column(modifier = Modifier.padding(top = 14.dp)) {
+                            // Voice Channel Stay
+                            Text(
+                                text = "🎙️ 24/7 Voice Stay Settings",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AccentGold,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+
                             OutlinedTextField(
                                 value = voiceChannelId,
                                 onValueChange = { viewModel.onVoiceChannelIdChanged(it) },
@@ -734,9 +746,32 @@ fun MainScreen(viewModel: MainViewModel) {
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
                             Divider(color = DarkCardBorder)
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // AFK Responder Section with ON/OFF Switch
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "🤖 Enable AFK Auto-Responder",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (enableAfk) DiscordGreen else DarkTextPrimary
+                                    )
+                                }
+                                Switch(
+                                    checked = enableAfk,
+                                    onCheckedChange = { viewModel.onEnableAfkChanged(it) },
+                                    colors = customSwitchColors()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
 
                             OutlinedTextField(
                                 value = afkMessage,
@@ -759,14 +794,14 @@ fun MainScreen(viewModel: MainViewModel) {
                                         checked = afkReplyDms,
                                         onCheckedChange = { viewModel.onAfkReplyDmsChanged(it) }
                                     )
-                                    Text("Reply to DMs", style = MaterialTheme.typography.bodyMedium)
+                                    Text("Reply to DMs (الخاص)", style = MaterialTheme.typography.bodyMedium)
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Checkbox(
                                         checked = afkReplyMentions,
                                         onCheckedChange = { viewModel.onAfkReplyMentionsChanged(it) }
                                     )
-                                    Text("Reply to Mentions", style = MaterialTheme.typography.bodyMedium)
+                                    Text("Reply to Mentions (المنشن)", style = MaterialTheme.typography.bodyMedium)
                                 }
                             }
                         }

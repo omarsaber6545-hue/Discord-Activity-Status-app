@@ -8,6 +8,9 @@ import com.omardev.discordactivity.data.models.DiscordPresence
 import com.omardev.discordactivity.data.models.NotificationLevel
 import kotlinx.coroutines.*
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 enum class GatewayConnectionState {
@@ -21,11 +24,17 @@ enum class GatewayConnectionState {
 class DiscordGatewayClient(
     private val token: String,
     private val isUserToken: Boolean = false,
+    private val clientId: String = "1536494151074586624",
     private var platform: DevicePlatform,
     private var currentPresence: DiscordPresence,
     private val voiceChannelId: String = "",
     private val voiceMute: Boolean = true,
     private val voiceDeaf: Boolean = true,
+    private var enableAfk: Boolean = false,
+    private var afkMessage: String = "انا غير متواجد حالياً، سأقوم بالرد عليك فور عودتي! ☕ (رد تلقائي)",
+    private var afkReplyDms: Boolean = true,
+    private var afkReplyMentions: Boolean = true,
+    private var afkCooldownSec: Int = 15,
     private val onStateChanged: (GatewayConnectionState) -> Unit,
     private val onLog: (AppNotification) -> Unit
 ) : WebSocketListener() {
@@ -42,6 +51,10 @@ class DiscordGatewayClient(
     private var heartbeatJob: Job? = null
     private var lastSequence: Int? = null
     private var isManualDisconnect = false
+
+    private var myUserId: String = ""
+    private var myUsername: String = ""
+    private val afkLastReplied = ConcurrentHashMap<String, Long>()
 
     var connectionState: GatewayConnectionState = GatewayConnectionState.DISCONNECTED
         private set(value) {
@@ -94,9 +107,23 @@ class DiscordGatewayClient(
         )
     }
 
-    fun updatePresence(newPresence: DiscordPresence, newPlatform: DevicePlatform? = null) {
+    fun updatePresence(
+        newPresence: DiscordPresence,
+        newPlatform: DevicePlatform? = null,
+        enableAfk: Boolean = this.enableAfk,
+        afkMessage: String = this.afkMessage,
+        afkReplyDms: Boolean = this.afkReplyDms,
+        afkReplyMentions: Boolean = this.afkReplyMentions,
+        afkCooldownSec: Int = this.afkCooldownSec
+    ) {
         val platformChanged = newPlatform != null && newPlatform != this.platform
         this.currentPresence = newPresence
+        this.enableAfk = enableAfk
+        this.afkMessage = afkMessage
+        this.afkReplyDms = afkReplyDms
+        this.afkReplyMentions = afkReplyMentions
+        this.afkCooldownSec = afkCooldownSec
+
         if (newPlatform != null) {
             this.platform = newPlatform
         }
@@ -156,17 +183,22 @@ class DiscordGatewayClient(
                 }
                 GatewayOpCodes.DISPATCH -> {
                     val eventType = json.get("t")?.asString
-                    if (eventType == "READY") {
-                        val botUser = json.getAsJsonObject("d").getAsJsonObject("user")
-                        val username = botUser.get("username")?.asString ?: "Discord Account"
+                    val data = if (json.has("d") && json.get("d").isJsonObject) json.getAsJsonObject("d") else null
+
+                    if (eventType == "READY" && data != null) {
+                        val botUser = data.getAsJsonObject("user")
+                        myUserId = botUser.get("id")?.asString ?: ""
+                        myUsername = botUser.get("username")?.asString ?: "Discord Account"
                         connectionState = GatewayConnectionState.IDENTIFIED
                         onLog(
                             AppNotification(
                                 level = NotificationLevel.SUCCESS,
                                 title = "Logged in Successfully",
-                                message = "Active as $username with ${platform.title} 🎮"
+                                message = "Active as $myUsername with ${platform.title} 🎮"
                             )
                         )
+                    } else if (eventType == "MESSAGE_CREATE" && data != null) {
+                        handleMessageCreateEvent(data)
                     }
                 }
                 GatewayOpCodes.RECONNECT -> {
@@ -198,6 +230,110 @@ class DiscordGatewayClient(
                     message = e.localizedMessage ?: "Unknown parsing error"
                 )
             )
+        }
+    }
+
+    private fun handleMessageCreateEvent(data: JsonObject) {
+        if (!enableAfk) return
+
+        try {
+            val author = if (data.has("author") && data.get("author").isJsonObject) data.getAsJsonObject("author") else return
+            val authorId = author.get("id")?.asString ?: ""
+            val isBot = author.has("bot") && author.get("bot").asBoolean
+
+            // Ignore messages from self or bots
+            if (authorId.isBlank() || authorId == myUserId || isBot) return
+
+            val channelId = data.get("channel_id")?.asString ?: return
+            val messageId = data.get("id")?.asString
+            val guildId = if (data.has("guild_id") && !data.get("guild_id").isJsonNull) data.get("guild_id").asString else null
+            val content = if (data.has("content")) data.get("content").asString else ""
+
+            val isDm = guildId.isNullOrBlank() || guildId == "0"
+            var isMentioned = false
+
+            if (!isDm) {
+                if (data.has("mentions") && data.get("mentions").isJsonArray) {
+                    val mentionsArray = data.getAsJsonArray("mentions")
+                    for (i in 0 until mentionsArray.size()) {
+                        val m = mentionsArray.get(i).asJsonObject
+                        if (m.get("id")?.asString == myUserId) {
+                            isMentioned = true
+                            break
+                        }
+                    }
+                }
+                if (!isMentioned && myUserId.isNotBlank() && (content.contains("<@$myUserId>") || content.contains("<@!$myUserId>"))) {
+                    isMentioned = true
+                }
+            }
+
+            var shouldReply = false
+            var reason = ""
+
+            if (isDm && afkReplyDms) {
+                shouldReply = true
+                reason = "Direct Message (DM)"
+            } else if (isMentioned && afkReplyMentions) {
+                shouldReply = true
+                reason = "Server Mention"
+            }
+
+            if (shouldReply) {
+                val now = System.currentTimeMillis()
+                val lastTime = afkLastReplied[authorId] ?: 0L
+                val cooldownMs = afkCooldownSec * 1000L
+
+                if (now - lastTime >= cooldownMs) {
+                    afkLastReplied[authorId] = now
+                    sendAfkReply(channelId, messageId, author.get("username")?.asString ?: authorId, reason)
+                }
+            }
+        } catch (e: Exception) {
+            // Ignore parse errors
+        }
+    }
+
+    private fun sendAfkReply(channelId: String, replyToMessageId: String?, authorName: String, reason: String) {
+        scope.launch {
+            val cleanToken = token.trim()
+            val authVal = if (isUserToken) cleanToken else if (cleanToken.startsWith("Bot ")) cleanToken else "Bot $cleanToken"
+
+            val url = "https://discord.com/api/v9/channels/$channelId/messages"
+
+            val bodyJson = JsonObject().apply {
+                addProperty("content", afkMessage)
+                if (!replyToMessageId.isNullOrBlank()) {
+                    val ref = JsonObject().apply {
+                        addProperty("message_id", replyToMessageId)
+                    }
+                    add("message_reference", ref)
+                }
+            }
+
+            val requestBody = gson.toJson(bodyJson).toRequestBody("application/json".toMediaType())
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("Authorization", authVal)
+                .addHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                .post(requestBody)
+                .build()
+
+            try {
+                client.newCall(request).execute().use { resp ->
+                    if (resp.isSuccessful) {
+                        onLog(
+                            AppNotification(
+                                level = NotificationLevel.INFO,
+                                title = "🤖 AFK Auto-Reply Sent",
+                                message = "Auto-replied to $authorName in $reason."
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore reply network failure
+            }
         }
     }
 
@@ -282,9 +418,12 @@ class DiscordGatewayClient(
 
         val metadata = if (buttonUrls.isNotEmpty()) ActivityMetadata(buttonUrls = buttonUrls) else null
 
+        val appId = clientId.trim().ifBlank { "1536494151074586624" }
+
         return ActivityData(
             name = presence.gameName.ifBlank { platform.title }.trim(),
             type = 0,
+            applicationId = appId,
             details = details,
             state = state,
             platform = platform.platformKey,
@@ -318,8 +457,8 @@ class DiscordGatewayClient(
             presence = PresenceUpdateData(
                 since = currentPresence.startTimestamp,
                 activities = listOf(activity),
-                status = "online",
-                afk = false
+                status = if (enableAfk) "idle" else "online",
+                afk = enableAfk
             ),
             intents = 3276799
         )
@@ -338,8 +477,8 @@ class DiscordGatewayClient(
         val updateData = PresenceUpdateData(
             since = presence.startTimestamp,
             activities = listOf(activity),
-            status = "online",
-            afk = false
+            status = if (enableAfk) "idle" else "online",
+            afk = enableAfk
         )
 
         val payload = GatewayPayload(

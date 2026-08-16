@@ -77,8 +77,17 @@ class DiscordPresenceService : Service() {
             }
             ACTION_UPDATE_PRESENCE -> {
                 val prefs = (application as App).preferencesManager
-                gatewayClient?.updatePresence(prefs.presence, prefs.devicePlatform)
-                updateNotification("Active: Playing ${prefs.presence.gameName} [${prefs.devicePlatform.title}]")
+                gatewayClient?.updatePresence(
+                    newPresence = prefs.presence,
+                    newPlatform = prefs.devicePlatform,
+                    enableAfk = prefs.enableAfk,
+                    afkMessage = prefs.afkMessage,
+                    afkReplyDms = prefs.afkReplyDms,
+                    afkReplyMentions = prefs.afkReplyMentions,
+                    afkCooldownSec = prefs.afkCooldownSec
+                )
+                val statusTitle = if (prefs.enableAfk) "AFK Mode Active ☕" else "Active: Playing ${prefs.presence.gameName} [${prefs.devicePlatform.title}]"
+                updateNotification(statusTitle)
             }
         }
         return START_STICKY
@@ -88,6 +97,7 @@ class DiscordPresenceService : Service() {
         val prefs = (application as App).preferencesManager
         val token = prefs.token
         val isUserToken = prefs.isUserToken
+        val clientId = prefs.clientId
         val platform = prefs.devicePlatform
         val presence = prefs.presence
 
@@ -95,15 +105,21 @@ class DiscordPresenceService : Service() {
         gatewayClient = DiscordGatewayClient(
             token = token,
             isUserToken = isUserToken,
+            clientId = clientId,
             platform = platform,
             currentPresence = presence,
             voiceChannelId = prefs.voiceChannelId,
             voiceMute = prefs.voiceMute,
             voiceDeaf = prefs.voiceDeaf,
+            enableAfk = prefs.enableAfk,
+            afkMessage = prefs.afkMessage,
+            afkReplyDms = prefs.afkReplyDms,
+            afkReplyMentions = prefs.afkReplyMentions,
+            afkCooldownSec = prefs.afkCooldownSec,
             onStateChanged = { state ->
                 connectionState.value = state
                 val stateText = when (state) {
-                    GatewayConnectionState.IDENTIFIED -> "Online: Playing ${presence.gameName} [${platform.title}]"
+                    GatewayConnectionState.IDENTIFIED -> if (prefs.enableAfk) "AFK Auto-Responder Active ☕" else "Online: Playing ${presence.gameName} [${platform.title}]"
                     GatewayConnectionState.CONNECTING -> "Connecting to Discord (${platform.title})..."
                     GatewayConnectionState.CONNECTED -> "Handshake complete..."
                     GatewayConnectionState.ERROR -> "Connection Error"
