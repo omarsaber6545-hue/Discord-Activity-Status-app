@@ -620,7 +620,6 @@ class DiscordGatewayClient(
 
         val identifyData = IdentifyData(
             token = authHeaderToken,
-            capabilities = 30717,
             properties = IdentifyProperties(
                 os = platform.osName,
                 browser = platform.browserName,
