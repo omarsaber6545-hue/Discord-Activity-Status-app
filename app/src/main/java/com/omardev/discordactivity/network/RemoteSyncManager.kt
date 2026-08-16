@@ -12,7 +12,6 @@ import com.google.gson.JsonObject
 import com.omardev.discordactivity.App
 import com.omardev.discordactivity.MainActivity
 import com.omardev.discordactivity.R
-import com.omardev.discordactivity.data.models.AnnouncementType
 import com.omardev.discordactivity.data.models.AppAnnouncement
 import com.omardev.discordactivity.data.preferences.PreferencesManager
 import kotlinx.coroutines.Dispatchers
@@ -52,9 +51,7 @@ class RemoteSyncManager(private val context: Context) {
             putExtra("announcement_id", announcement.id)
             putExtra("announcement_title", announcement.title)
             putExtra("announcement_message", announcement.message)
-            putExtra("announcement_author", announcement.author)
             putExtra("announcement_timestamp", announcement.timestamp)
-            putExtra("announcement_type", announcement.type.name)
         }
 
         val pendingIntent = PendingIntent.getActivity(
@@ -141,7 +138,6 @@ class RemoteSyncManager(private val context: Context) {
                             val id = cmd.get("id")?.asString ?: msgObj.get("id")?.asString ?: System.currentTimeMillis().toString()
                             val title = cmd.get("title")?.asString ?: "تنبيه هام من المطور Omar Dev"
                             val message = cmd.get("message")?.asString ?: ""
-                            val author = cmd.get("author")?.asString ?: "Omar Dev (Owner)"
                             val targetUser = if (cmd.has("target_user_id") && !cmd.get("target_user_id").isJsonNull) cmd.get("target_user_id").asString else null
 
                             // Check if this broadcast is for everyone OR specifically for me
@@ -151,8 +147,6 @@ class RemoteSyncManager(private val context: Context) {
                                         id = id,
                                         title = title,
                                         message = message,
-                                        author = author,
-                                        type = AnnouncementType.UPDATE,
                                         timestamp = System.currentTimeMillis()
                                     )
                                     prefs.activeAnnouncement = announcement
