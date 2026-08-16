@@ -9,16 +9,50 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 import json
+import os
 import time
-import base64
 import sys
 
-# --- إعدادات البوت والمالك ---
-_B64_KEY = b"TVRVek9ETTJOVFkyTnpZek9Ua3lNel15Tnc9PS5HMTVDeHguUER5VXBkSTl2MUpNSzVmUThmMHZDcUF3LTYwd2lWanFiWVhQT3c="
-BOT_TOKEN = base64.b64decode(_B64_KEY).decode("utf-8").replace("==", "")
+CONFIG_FILE = "config.json"
 
-OWNER_ID = 1512205578015871048           # أيدي حسابك (rip_luufy25100)
-SYNC_CHANNEL_ID = 1538588035749384222     # أيدي روم الإشعارات والتحكم بالتطبيق
+def load_config():
+    default_config = {
+        "bot_token": "",
+        "owner_id": 1512205578015871048,
+        "sync_channel_id": 1538588035749384222
+    }
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return default_config
+    return default_config
+
+def save_config(cfg):
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+config = load_config()
+BOT_TOKEN = config.get("bot_token", "").strip()
+OWNER_ID = int(config.get("owner_id", 1512205578015871048))
+SYNC_CHANNEL_ID = int(config.get("sync_channel_id", 1538588035749384222))
+
+if not BOT_TOKEN or "PASTE" in BOT_TOKEN or len(BOT_TOKEN) < 20:
+    print("==================================================")
+    print("👑 أهلاً بك يا عمر في لوحة تشغيل بوت التحكم!")
+    print("💡 يرجى لصق توكن البوت الجديد (Bot Token):")
+    print("👉 يمكنك جلبه من: https://discord.com/developers/applications")
+    print("==================================================")
+    entered_token = input("🔑 ضع التوكن هنا واضغط Enter: ").strip()
+    if entered_token:
+        BOT_TOKEN = entered_token
+        config["bot_token"] = entered_token
+        save_config(config)
+        print("✅ تم حفظ التوكن بنجاح في config.json!")
+    else:
+        print("❌ لم يتم إدخال التوكن. تم إلغاء التشغيل.")
+        sys.exit(1)
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -35,8 +69,7 @@ async def on_ready():
         print(f"👑 Admin Owner ID: {OWNER_ID}")
         print(f"📢 Control Channel ID: {SYNC_CHANNEL_ID}")
         print("==================================================")
-        print("🚀 البوت جاهز وشغال 100%! يمكنك كتابة الأوامر بالسلاش (/) أو بعلامة التعجب (!).")
-        print("💡 الأوامر المتاحة:")
+        print("🚀 البوت متصل وشغال 100%! يمكنك كتابة الأوامر بالسلاش (/) أو بعلامة (!):")
         print("   /broadcast [عنوان] [رسالة]  أو  !broadcast عنوان | رسالة")
         print("   /ban [user_id] [سبب]        أو  !ban [user_id] [سبب]")
         print("   /wipe [user_id]             أو  !wipe [user_id]")

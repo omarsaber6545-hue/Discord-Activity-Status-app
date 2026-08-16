@@ -9,6 +9,10 @@
 .cxx
 local.properties
 
+# Local Bot Config (Secret & Ignored by Git)
+config.json
+.env
+
 # Android Studio Navigation editor temp files
 .navigation
 
