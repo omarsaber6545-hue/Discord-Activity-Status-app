@@ -1,6 +1,0 @@
-<resources>
-    <string name="app_name">omar dev - Discord RPC</string>
-    <string name="discord_service_running">Discord Rich Presence is Active</string>
-    <string name="discord_service_channel_name">Discord Presence Service</string>
-    <string name="discord_service_channel_desc">Shows active status and gateway connectivity</string>
-</resources>
