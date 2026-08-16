@@ -27,7 +27,9 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'gradle'
+
+      - name: 🐘 Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
       - name: ⚙️ Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -35,7 +37,7 @@ jobs:
       - name: 🔑 Grant Execute Permission for Gradlew
         run: chmod +x gradlew
 
-      - name: 🔨 Generate Debug Keystore for Release Signing (Fallback)
+      - name: 🔨 Generate Debug Keystore for Release Signing
         run: |
           if [ ! -f debug.keystore ]; then
             keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
